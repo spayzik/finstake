@@ -1,3 +1,4 @@
+import { creditTerms } from '../lib/terms';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, BriefcaseBusiness, Check, CheckCircle2, House, LoaderCircle, ShieldCheck, UserRound, X } from 'lucide-react';
@@ -187,7 +188,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
                         <label className="lead-label" htmlFor={id('term')}>На какой срок? <span className="lead-optional">необязательно</span></label>
                         <select id={id('term')} name="term" value={draft.term} onChange={(event) => update('term', event.target.value)} aria-invalid={Boolean(errors.term) || undefined} aria-describedby={errors.term ? id('term-error') : undefined}>
                           <option value="">Пока не определился(ась)</option>
-                          <option value="12">1 год</option><option value="24">2 года</option><option value="36">3 года</option><option value="60">5 лет</option><option value="84">7 лет</option><option value="120">10 лет</option>
+                          {creditTerms.map(term => <option key={term.months} value={term.months}>{term.title}</option>)}
                         </select>
                         {errors.term && <p className="lead-field-error" id={id('term-error')}>{errors.term}</p>}
                       </div>

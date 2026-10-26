@@ -1,3 +1,4 @@
+import { creditTerms } from './terms.ts';
 export type ServiceType = 'personal' | 'business' | 'secured' | 'refinancing';
 export type CommunicationType = 'phone' | 'telegram' | 'whatsapp';
 export type LeadDraft = {
@@ -33,7 +34,7 @@ export class LeadSubmissionError extends Error {
 }
 const services = new Set<string>(['personal', 'business', 'secured', 'refinancing']);
 const channels = new Set<string>(['phone', 'telegram', 'whatsapp']);
-const terms = new Set<string>(['12', '24', '36', '60', '84', '120']);
+const terms = new Set<string>(creditTerms.map(term => String(term.months)));
 
 export function parseAmount(value: string): number | null {
   const digits = value.replace(/[ \u00a0\u202f]/g, '');

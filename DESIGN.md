@@ -84,3 +84,16 @@ Bounded revision plan: preserve original v1 assets/evidence; add generated v2 he
 
 ### Owner logo update — 2026-10-26
 Use the owner-supplied cube/handshake and original FinStake lettering. Remove white background, retain a complete transparent asset, and compose mark plus lettering horizontally for readable responsive navigation. Replace the interim reconstructed logo in both header and footer and use the original mark for the favicon.
+
+## Revision 3 — clear glass / guided assistance (2026-10-26)
+Owner requests a more modern, transparent interface, a stronger hero, 30-year terms and a compact predefined-answer helper. Preserve the supplied logo, emerald identity, office photography, brokerage model and honest demo lead contract.
+
+Reference inspection: 21st Liquid Glass Button (https://21st.dev/@designali-in/components/liquid-glass-button), visually inspected 2026-10-26: fine specular rim and restrained depth, adapted to surfaces without copying code. Kokonut homepage (https://kokonutui.com/), visually inspected same date: distinct type hierarchy and contained interactive examples, adapted to form controls and helper choices. Refero MCP returned NO_SUBSCRIPTION; no Refero screens inspected. Motion reduced-motion documentation reviewed.
+
+Chosen direction: architectural clear glass. Keep office hero but frame it with rounded architecture, stronger green emphasis, clear layered panels and an explicit service path. Lower white fill opacity, use static 14–20px backdrop blur, fine bright edges and dark text. Avoid stacked opaque white gradients that produced the previous matte result. Other considered directions (dark banking dashboard, full-screen abstract AI graphics) conflict with the existing reference lock.
+
+Implementation: shared term catalog through 360 months across calculation, lead selection and validation. Predefined-answer helper in bottom-right, user-controlled nonmodal panel; no AI identity, network requests, personal data entry or fake online-agent status. Questions expose factual service/process/payment answers with a consultation action. Closed welcome hint is dismissible, never auto-opens.
+
+Motion: hero stagger completes within 750ms; interactive cards transform only 2–4px; helper 220ms opacity/translate and answer transitions; no perpetual effects. Honor reduced motion, keyboard Escape/focus restoration, visible focus and minimum 44px control targets. Mobile glass has lower blur; helper stays within visual viewport and is hidden behind modal forms. QA: desktop/tablet/mobile screenshot review, 360-month calculation and lead prefill, helper keyboard/dismiss/reopen, validation and production build.
+
+Revision 3 validation: 19 Node tests pass; Pages build passes. Local browser inspected desktop, tablet (805px content viewport) and mobile (375px content viewport): no horizontal page overflow. Verified 360-month/12%/1m calculation (first payment 10,286.13 RUB), lead term prefill and preservation on back, inline empty-contact errors, helper predefined answer, Escape and trigger focus restoration. Representative screenshots are local in evidence/v3/. Reduced-motion branches reviewed in source; OS reduced-motion toggle not exercised in browser.

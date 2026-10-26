@@ -1,3 +1,4 @@
+import QuickHelp from './components/QuickHelp';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Check, CheckCircle2, ChevronDown, FileCheck2, Handshake, Menu, MessageCircle, Plus, ScanLine, ShieldCheck, TrendingUp, X } from 'lucide-react';
@@ -76,7 +77,7 @@ function Hero({ onApply }: { onApply: () => void }) {
     { title: 'До получения кредита', text: 'Документы, оформление, сопровождение', Icon: Handshake },
   ];
   return <section className="hero" aria-labelledby="hero-title">
-    <div className="hero-photo" aria-hidden="true"><img src={assetUrl('images/hero-v2-1800.webp')} srcSet={`${assetUrl('images/hero-v2-960.webp')} 960w, ${assetUrl('images/hero-v2-1800.webp')} 1800w`} sizes="100vw" alt="" fetchPriority="high" width="1800" height="1029" /><div className="hero-photo-wash" /></div>
+    <motion.div className="hero-photo" aria-hidden="true" initial={reduced ? false : { opacity: .7, scale: 1.025 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .65, ease: [0.22, 1, 0.36, 1] }}><img src={assetUrl('images/hero-v2-1800.webp')} srcSet={`${assetUrl('images/hero-v2-960.webp')} 960w, ${assetUrl('images/hero-v2-1800.webp')} 1800w`} sizes="100vw" alt="" fetchPriority="high" width="1800" height="1029" /><div className="hero-photo-wash" /></motion.div>
     <div className="container hero-inner">
       <div className="hero-copy">
         <motion.p className="eyebrow hero-eyebrow" {...entrance(0)}><span className="status-dot" /> Кредитование под ключ · без предоплаты</motion.p>
@@ -85,7 +86,7 @@ function Hero({ onApply }: { onApply: () => void }) {
         <motion.div className="hero-actions" {...entrance(0.18)}><button className="button" onClick={onApply}>Получить консультацию <ArrowUpRight size={18} /></button><a className="text-link hero-secondary" href="#calculator">Рассчитать кредит <ArrowUpRight size={16} /></a></motion.div>
         <motion.p className="hero-note" {...entrance(0.22)}><BadgeCheck size={17} /> Без предоплаты. Оплата после получения кредита.</motion.p>
       </div>
-      <div className="hero-panels" aria-label="Что включает сопровождение">
+      <div className="hero-panels" aria-label="Что включает сопровождение"><div className="hero-path-label"><span className="status-dot" /> Ваш путь к финансированию</div>
         {panels.map(({ title, text, Icon }, index) => <motion.div key={title} className={`hero-panel hero-panel-${index + 1}`} {...entrance(0.12 + index * 0.065)}><div className="glass-plate"><span className="panel-icon"><Icon size={24} strokeWidth={1.55} /></span><div><h2>{title}</h2><p>{text}</p></div><span className="panel-number">0{index + 1}</span></div></motion.div>)}
       </div>
     </div>
@@ -208,6 +209,7 @@ export default function App() {
   const closePrivacy = () => { privacyDialog.current?.close(); setPrivacyOpen(false); };
   const openLead = (service: ServiceType = 'personal', values?: CalculationPrefill) => { leadReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setLeadPrefill(values); setLeadService(service); };
   return <><a href="#main" className="skip-link">Перейти к содержимому</a><div id="top" /><Header onApply={() => openLead()} /><main id="main"><Hero onApply={() => openLead()} /><ValueProposition /><CreditCalculator onDiscuss={values => openLead('personal', values)} /><ServiceCards onApply={openLead} /><SuccessFee onApply={() => openLead()} /><ProcessTimeline /><Consultation onApply={() => openLead()} /><FAQ /></main><Footer onApply={() => openLead()} onPrivacy={() => setPrivacyOpen(true)} />
+    <QuickHelp onConsult={() => openLead()} hidden={Boolean(leadService || privacyOpen)} />
     {leadService && <dialog ref={leadDialog} className="lead-dialog" aria-labelledby="lead-form-title" onKeyDown={containDialogFocus} onClose={handleLeadClose}><LeadForm initialService={leadService} initialValues={leadPrefill} onClose={closeLead} onPrivacy={() => setPrivacyOpen(true)} /></dialog>}
     {privacyOpen && <dialog ref={privacyDialog} className="privacy-dialog" aria-labelledby="privacy-title" onKeyDown={containDialogFocus} onClose={() => setPrivacyOpen(false)}><div className="privacy-content"><button className="icon-button privacy-close" onClick={closePrivacy} aria-label="Закрыть информацию о персональных данных"><X size={22} /></button><span className="privacy-icon"><ShieldCheck size={27} strokeWidth={1.5} /></span><p className="eyebrow">Персональные данные</p>{leadConfig.mode === 'live' ? <><h2 id="privacy-title">Обработка данных<br />вашего обращения</h2><p>Перед отправкой ознакомьтесь с опубликованной политикой обработки персональных данных. В ней указаны оператор и условия обработки.</p><a className="button" href={leadConfig.privacyPolicyUrl} target="_blank" rel="noopener noreferrer">Открыть политику <ArrowUpRight size={17} /></a></> : <><h2 id="privacy-title">Ваши данные остаются<br />в этом браузере</h2><p>Приём реальных заявок отключён. Данные не отправляются на сервер, не передаются кредиторам и не сохраняются после закрытия формы.</p><p>Для подключения отправки необходимы оператор, контакты и утверждённая политика обработки персональных данных.</p><p className="privacy-small">Этот текст поясняет работу демоверсии и не заменяет юридическую политику.</p><button className="button" onClick={closePrivacy}>Понятно <Check size={17} /></button></>}</div></dialog>}
   </>;

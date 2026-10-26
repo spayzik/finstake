@@ -166,3 +166,14 @@ test('caller cancellation aborts an in-flight request and is distinct from failu
   controller.abort();
   await assert.rejects(submission, (error) => error instanceof LeadSubmissionError && error.code === 'cancelled');
 });
+
+test('30-year terms survive lead validation and preserve the selected duration', async () => {
+  const draft = { ...validDraft, term: '360' };
+  assert.deepEqual(validateDetails(draft), {});
+  let payload: { termMonths: number } | undefined;
+  await submitLead(draft, liveConfig, { fetcher: async (_url, options) => {
+    payload = JSON.parse(String(options?.body));
+    return new Response(JSON.stringify({ status: 'accepted', requestId: 'long-term-test' }), { status: 201 });
+  } });
+  assert.equal(payload?.termMonths, 360);
+});

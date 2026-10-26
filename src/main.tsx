@@ -14,6 +14,7 @@ import '@fontsource/manrope/latin-800.css';
 import App from './App';
 import './styles.css';
 import './revision.css';
+import './modern.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><MotionConfig reducedMotion="user"><App /></MotionConfig></React.StrictMode>,

@@ -3,11 +3,11 @@ import { ArrowDown, ArrowUpRight, Calculator, Check, ChevronDown, Info } from 'l
 import { calculateCredit, validateCredit, type PaymentType } from '../lib/credit';
 import { parseAmount, type LeadDraft } from '../lib/lead';
 import './credit-calculator.css';
+import { creditTerms as terms } from '../lib/terms';
 
 export type CalculationPrefill = Pick<LeadDraft, 'amount' | 'term' | 'comment'>;
 const rubles = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
 const shortRubles = new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 });
-const terms = [{ months: 12, title: '1 год' }, { months: 24, title: '2 года' }, { months: 36, title: '3 года' }, { months: 60, title: '5 лет' }, { months: 84, title: '7 лет' }, { months: 120, title: '10 лет' }];
 
 export default function CreditCalculator({ onDiscuss }: { onDiscuss: (values: CalculationPrefill) => void }) {
   const prefix = useId();
