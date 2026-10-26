@@ -1,7 +1,8 @@
+import HeroGlass from './components/HeroGlass';
 import QuickHelp from './components/QuickHelp';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Check, CheckCircle2, ChevronDown, FileCheck2, Handshake, Menu, MessageCircle, Plus, ScanLine, ShieldCheck, TrendingUp, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Check, CheckCircle2, ChevronDown, FileCheck2, Menu, MessageCircle, Plus, ShieldCheck, TrendingUp, X } from 'lucide-react';
 import LeadForm from './components/LeadForm';
 import CreditCalculator, { type CalculationPrefill } from './components/CreditCalculator';
 import { resolveLeadConfig, type ServiceType } from './lib/lead';
@@ -71,24 +72,17 @@ function Header({ onApply }: { onApply: () => void }) {
 function Hero({ onApply }: { onApply: () => void }) {
   const reduced = useReducedMotion();
   const entrance = (delay: number) => ({ initial: reduced ? false as const : { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] as const } });
-  const panels = [
-    { title: 'Возможности вашей ситуации', text: 'Анализируем, где можно получить больше', Icon: TrendingUp },
-    { title: 'Индивидуальное решение', text: 'Подбираем условия под ваши цели', Icon: ScanLine },
-    { title: 'До получения кредита', text: 'Документы, оформление, сопровождение', Icon: Handshake },
-  ];
   return <section className="hero" aria-labelledby="hero-title">
     <motion.div className="hero-photo" aria-hidden="true" initial={reduced ? false : { opacity: .7, scale: 1.025 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .65, ease: [0.22, 1, 0.36, 1] }}><img src={assetUrl('images/hero-v2-1800.webp')} srcSet={`${assetUrl('images/hero-v2-960.webp')} 960w, ${assetUrl('images/hero-v2-1800.webp')} 1800w`} sizes="100vw" alt="" fetchPriority="high" width="1800" height="1029" /><div className="hero-photo-wash" /></motion.div>
     <div className="container hero-inner">
       <div className="hero-copy">
-        <motion.p className="eyebrow hero-eyebrow" {...entrance(0)}><span className="status-dot" /> Кредитование под ключ · без предоплаты</motion.p>
-        <motion.h1 id="hero-title" {...entrance(0.06)}><span className="hero-heading-line">Подбираем </span><span className="hero-heading-line">кредитные решения </span><span className="hero-emphasis">под вашу задачу</span></motion.h1>
-        <motion.p className="hero-description" {...entrance(0.12)}>Анализируем вашу ситуацию, ищем возможность получить большую сумму и подбираем подходящие условия. Сопровождаем весь процесс — от документов до получения кредита.</motion.p>
+        <motion.p className="eyebrow hero-eyebrow" {...entrance(0)}><span className="status-dot" /> Кредитный брокер · без предоплаты</motion.p>
+        <motion.h1 id="hero-title" {...entrance(0.06)}><span>Кредиты</span><span>для жизни</span><span className="hero-emphasis">и бизнеса.</span></motion.h1>
+        <motion.p className="hero-description" {...entrance(0.12)}>Находим возможности получить больше. Подбираем условия под вашу ситуацию и сопровождаем весь путь — от документов до получения кредита.</motion.p>
         <motion.div className="hero-actions" {...entrance(0.18)}><button className="button" onClick={onApply}>Получить консультацию <ArrowUpRight size={18} /></button><a className="text-link hero-secondary" href="#calculator">Рассчитать кредит <ArrowUpRight size={16} /></a></motion.div>
         <motion.p className="hero-note" {...entrance(0.22)}><BadgeCheck size={17} /> Без предоплаты. Оплата после получения кредита.</motion.p>
       </div>
-      <div className="hero-panels" aria-label="Что включает сопровождение"><div className="hero-path-label"><span className="status-dot" /> Ваш путь к финансированию</div>
-        {panels.map(({ title, text, Icon }, index) => <motion.div key={title} className={`hero-panel hero-panel-${index + 1}`} {...entrance(0.12 + index * 0.065)}><div className="glass-plate"><span className="panel-icon"><Icon size={24} strokeWidth={1.55} /></span><div><h2>{title}</h2><p>{text}</p></div><span className="panel-number">0{index + 1}</span></div></motion.div>)}
-      </div>
+      <HeroGlass />
     </div>
     <div className="hero-bottom-label" aria-hidden="true"><span /> Больше возможностей для ваших планов.</div>
   </section>;
