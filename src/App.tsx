@@ -27,8 +27,8 @@ const navigation = [
 
 function Brand({ light = false }: { light?: boolean }) {
   return <a className={`brand${light ? ' brand-light' : ''}`} href="#top" aria-label="FinStake — на главную">
-    <img className="brand-mark" src={assetUrl('brand-mark.svg')} width="34" height="40" alt="" />
-    <span>Fin<span className="brand-name-accent">Stake</span></span>
+    <img className="brand-mark" src={assetUrl('finstake-mark.png')} width="34" height="40" alt="" />
+    <img className="brand-wordmark" src={assetUrl('finstake-wordmark.png')} width="120" height="24" alt="" />
   </a>;
 }
 

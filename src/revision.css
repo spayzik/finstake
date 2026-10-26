@@ -290,3 +290,9 @@ body { background: radial-gradient(ellipse at 93% 31%, #d9f6ea6b, transparent 33
 @media (prefers-reduced-motion: reduce) {
   .glass-plate, .hero-panel-2 .glass-plate, .hero-panel-3 .glass-plate, .hero-panel:hover .glass-plate { transform: none; transition: none; }
 }
+
+/* Original owner-supplied logo, transparent raster derivatives. */
+.brand-mark { object-fit: contain; flex-shrink: 0; }
+.brand-wordmark { width: 120px; height: auto; object-fit: contain; }
+@media (max-width: 1190px) { .brand-wordmark { width: 108px; } }
+@media (max-width: 700px) { .brand-wordmark { width: 102px; } }

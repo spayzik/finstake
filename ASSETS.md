@@ -52,3 +52,6 @@ The current hero now uses `hero-v2-960.webp` and `hero-v2-1800.webp`. These are 
 Original v1 hero photos/derivatives remain preserved, while the runtime hero points to the new v2 paths. The four service photographs above remain in use. The current `public/brand-mark.svg` and two-colour wordmark are a code-native reconstruction of the cube-like mark in the owner's references; an original vector file is still required to certify exact logo fidelity. The old F favicon remains preserved but is no longer referenced.
 
 New asset dimensions and fresh SHA-256 readback are in `evidence/v2/assets.json`.
+
+## Original owner logo — 2026-10-26
+The owner supplied 1-Фото-1.jpg. The built-in imagegen editor removed its white background, preserving the cube, handshake and FinStake lettering. Full transparent output: public/finstake-logo-transparent.png. Cropped, resized transparent derivatives finstake-mark.png and finstake-wordmark.png form the horizontal header/footer lockup; the mark is also the favicon. These replace the interim reconstruction at runtime. Raster cleanup is not a vector master; the supplied JPG remains the source of identity.
