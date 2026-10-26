@@ -55,3 +55,16 @@ New asset dimensions and fresh SHA-256 readback are in `evidence/v2/assets.json`
 
 ## Original owner logo — 2026-10-26
 The owner supplied 1-Фото-1.jpg. The built-in imagegen editor removed its white background, preserving the cube, handshake and FinStake lettering. Full transparent output: public/finstake-logo-transparent.png. Cropped, resized transparent derivatives finstake-mark.png and finstake-wordmark.png form the horizontal header/footer lockup; the mark is also the favicon. These replace the interim reconstruction at runtime. Raster cleanup is not a vector master; the supplied JPG remains the source of identity.
+
+## Revision 5 — service photography (2026-10-26)
+All five source images were downloaded and visually inspected locally before use. Their subjects are illustrative and are not represented as FinStake employees, customers or transactions. Owner mobile screenshots are QA evidence only.
+
+| Runtime role | Photographer | Source and license |
+|---|---|---|
+| personal-v5 | Ketut Subiyanto | https://www.pexels.com/photo/happy-couple-looking-at-paperwork-4308013/ — Pexels License |
+| business-v5 | RDNE Stock project | https://www.pexels.com/photo/people-looking-at-documents-in-a-business-meeting-7888809/ — Pexels License |
+| secured-v5 | Binyamin Mellish | https://www.pexels.com/photo/house-lights-turned-on-106399/ — Pexels License |
+| refinancing-v5 | Olena Kholina | https://unsplash.com/photos/two-people-reviewing-documents-at-a-table-MhqUBTxQ3Hw — Unsplash License |
+| consultation-v5 | Kaboompics.com | https://www.pexels.com/photo/men-talking-at-an-office-7877197/ — Pexels License |
+
+License pages reviewed: https://www.pexels.com/license/ and the Unsplash source license indication. Download URLs: Pexels images.pexels.com/photos/{id}/pexels-photo-{id}.jpeg?auto=compress&w=1400; Unsplash images.unsplash.com/photo-1775163024488-e88e4a71179f?auto=format&fit=max&w=1400&q=85. Local originals: evidence/v5/*.jpg (unpublished). Production derivatives: public/images/{role}-v5-{480,800}.webp, and consultation-v5-{600,1200}.webp. Existing Sharp used for crops/resize and WebP encoding at quality 86; no dependencies installed. Business crops source rectangle 0,550,1400,1200; consultation 0,650,1400,1150. Other images center-cropped to 4:3. Shared CSS saturation .72/contrast .96/brightness 1.05, with lower saturation for the dusk property photo, retains natural photography and a quieter green/neutral palette. Previous image versions remain preserved.

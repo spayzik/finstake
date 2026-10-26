@@ -1,8 +1,9 @@
+import ServiceCards from './components/ServiceCards';
 import HeroGlass from './components/HeroGlass';
 import QuickHelp from './components/QuickHelp';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Check, CheckCircle2, ChevronDown, FileCheck2, Menu, MessageCircle, Plus, ShieldCheck, TrendingUp, X } from 'lucide-react';
+import { ArrowUpRight, BadgeCheck, Banknote, Check, CheckCircle2, ChevronDown, FileCheck2, Menu, MessageCircle, Plus, ShieldCheck, TrendingUp, X } from 'lucide-react';
 import LeadForm from './components/LeadForm';
 import CreditCalculator, { type CalculationPrefill } from './components/CreditCalculator';
 import { resolveLeadConfig, type ServiceType } from './lib/lead';
@@ -77,7 +78,7 @@ function Hero({ onApply }: { onApply: () => void }) {
     <div className="container hero-inner">
       <div className="hero-copy">
         <motion.p className="eyebrow hero-eyebrow" {...entrance(0)}><span className="status-dot" /> Кредитный брокер · без предоплаты</motion.p>
-        <motion.h1 id="hero-title" {...entrance(0.06)}><span>Кредиты</span><span>для жизни</span><span className="hero-emphasis">и бизнеса.</span></motion.h1>
+        <motion.h1 id="hero-title" {...entrance(0.06)}><span>Кредиты </span><span>для жизни </span><span className="hero-emphasis">и бизнеса.</span></motion.h1>
         <motion.p className="hero-description" {...entrance(0.12)}>Находим возможности получить больше. Подбираем условия под вашу ситуацию и сопровождаем весь путь — от документов до получения кредита.</motion.p>
         <motion.div className="hero-actions" {...entrance(0.18)}><button className="button" onClick={onApply}>Получить консультацию <ArrowUpRight size={18} /></button><a className="text-link hero-secondary" href="#calculator">Рассчитать кредит <ArrowUpRight size={16} /></a></motion.div>
         <motion.p className="hero-note" {...entrance(0.22)}><BadgeCheck size={17} /> Без предоплаты. Оплата после получения кредита.</motion.p>
@@ -96,26 +97,6 @@ function ValueProposition() {
     { Icon: ShieldCheck, title: 'Индивидуальный подход', text: 'Решение под ваши цели и возможности' },
   ];
   return <section className="benefits" aria-label="Преимущества FinStake"><div className="container benefits-grid">{benefits.map(({ Icon, title, text }) => <div className="benefit" key={title}><Icon size={23} strokeWidth={1.45} /><div><h2>{title}</h2><p>{text}</p></div></div>)}</div></section>;
-}
-
-const services: { id: ServiceType; title: string; description: string; imageAlt: string; label: string }[] = [
-  { id: 'personal', title: 'Частным клиентам', description: 'Финансирование личных задач и важных планов.', imageAlt: 'Светлый жилой интерьер с деревянными деталями', label: 'Для ваших планов' },
-  { id: 'business', title: 'Для бизнеса', description: 'Оборотные средства, развитие и новые возможности.', imageAlt: 'Переговорная с панорамными окнами и дневным светом', label: 'Для роста и развития' },
-  { id: 'secured', title: 'Под залог', description: 'Варианты финансирования с обеспечением.', imageAlt: 'Современный загородный дом с садом и террасой', label: 'С опорой на активы' },
-  { id: 'refinancing', title: 'Рефинансирование', description: 'Оценка вариантов изменения текущих обязательств.', imageAlt: 'Спокойная гостиная в естественном дневном свете', label: 'Для новых условий' },
-];
-
-function ServiceCards({ onApply }: { onApply: (service: ServiceType) => void }) {
-  return <section className="section services-section" id="services" aria-labelledby="services-title"><div className="container">
-    <Reveal className="section-heading"><div><p className="eyebrow">Направления финансирования</p><h2 id="services-title">У каждого плана —<br />своё решение</h2></div><p className="section-intro">Для личных целей и задач бизнеса.<br className="desktop-break" /> Разберёмся в вариантах вместе с вами.</p></Reveal>
-    <div className="services-grid">{services.map((service, index) => <Reveal key={service.id} delay={index * 0.055}><article className="service-card" id={service.id}>
-      <button onClick={() => onApply(service.id)} className="service-card-action" aria-label={`${service.title} — обсудить финансирование`}>
-        <div className={`service-image service-image-${service.id}`}><img src={assetUrl(`images/${service.id}-800.webp`)} srcSet={`${assetUrl(`images/${service.id}-480.webp`)} 480w, ${assetUrl(`images/${service.id}-800.webp`)} 800w`} sizes="(max-width: 600px) 100vw, (max-width: 1000px) 50vw, 25vw" alt={service.imageAlt} width="800" height="600" loading="lazy" /><span className="image-label">{service.label}</span></div>
-        <div className="service-content"><div className="service-title-row"><h3>{service.title}</h3><ArrowUpRight className="service-arrow" size={21} strokeWidth={1.5} /></div><p>{service.description}</p><span className="service-more">Обсудить задачу <ArrowRight size={15} /></span></div>
-      </button>
-    </article></Reveal>)}</div>
-    <Reveal className="services-footnote"><span className="status-dot" /><p>Не уверены, какое направление вам подходит?</p><button onClick={() => onApply('personal')}>Поможем разобраться <ArrowUpRight size={15} /></button></Reveal>
-  </div></section>;
 }
 
 function ProcessTimeline() {
@@ -138,8 +119,8 @@ function SuccessFee({ onApply }: { onApply: () => void }) {
 
 function Consultation({ onApply }: { onApply: () => void }) {
   return <section className="section consultation-section" id="about" aria-labelledby="consultation-title"><div className="container"><Reveal className="consultation-box">
-    <div className="consultation-copy" id="consultation"><p className="eyebrow"><span className="status-dot" /> FinStake. На вашей стороне.</p><h2 id="consultation-title">Больше возможностей<br />начинается с разговора.</h2><p>Расскажите о вашей цели и текущей ситуации. Разберём, как получить нужную сумму, какие условия рассмотреть и с чего начать.</p><button className="button" onClick={onApply}>Разобрать мою ситуацию <ArrowUpRight size={18} /></button><div className="consultation-caption"><span className="caption-line" /> Личное сопровождение. Общий интерес к результату.</div></div>
-    <div className="consultation-visual"><img src={assetUrl('images/business-800.webp')} alt="Открытое деловое пространство с естественным светом" width="800" height="600" loading="lazy" /><div className="consultation-image-label"><span className="small-icon"><MessageCircle size={19} strokeWidth={1.5} /></span><div><span>Сначала — разговор</span><p>Решение начинается с понимания</p></div><ArrowUpRight size={19} /></div></div>
+    <div className="consultation-copy" id="consultation"><p className="eyebrow"><span className="status-dot" /> FinStake. На вашей стороне.</p><h2 id="consultation-title">Больше возможностей <br />начинается с разговора.</h2><p>Расскажите о вашей цели и текущей ситуации. Разберём, как получить нужную сумму, какие условия рассмотреть и с чего начать.</p><button className="button" onClick={onApply}>Разобрать мою ситуацию <ArrowUpRight size={18} /></button><div className="consultation-caption"><span className="caption-line" /> Личное сопровождение. Общий интерес к результату.</div></div>
+    <div className="consultation-visual"><img src={assetUrl('images/consultation-v5-1200.webp')} srcSet={`${assetUrl('images/consultation-v5-600.webp')} 600w, ${assetUrl('images/consultation-v5-1200.webp')} 1200w`} sizes="(max-width: 700px) 100vw, 50vw" alt="Обсуждение документов на деловой встрече в светлом офисе" width="1200" height="984" loading="lazy" /><div className="consultation-image-label"><span className="small-icon"><MessageCircle size={19} strokeWidth={1.5} /></span><div><span>Сначала — разговор</span><p>Решение начинается с понимания</p></div></div></div>
   </Reveal><div className="about-line"><p>FinStake — независимое агентство кредитного брокерства.</p><span>Личные задачи. Бизнес-планы. Профессиональное сопровождение.</span></div></div></section>;
 }
 
@@ -156,7 +137,7 @@ function FAQ() {
   const reduced = useReducedMotion();
   return <section className="section faq-section" id="faq" aria-labelledby="faq-title">
     <div className="container faq-layout">
-      <Reveal><p className="eyebrow">Вопросы и ответы</p><h2 id="faq-title">Давайте проясним<br />важное</h2><p className="faq-intro">О нашей роли, документах<br />и процессе сопровождения.</p></Reveal>
+      <Reveal><p className="eyebrow">Вопросы и ответы</p><h2 id="faq-title">Давайте проясним<br />важное</h2><p className="faq-intro">О нашей роли, документах <br />и процессе сопровождения.</p></Reveal>
       <Reveal className="faq-list">
         {questions.map(([question, answer], index) => <div className={`faq-item${open === index ? ' is-open' : ''}`} key={question}>
           <h3><button onClick={() => setOpen(open === index ? null : index)} aria-expanded={open === index} aria-controls={`faq-answer-${index}`} id={`faq-question-${index}`}>{question}<Plus size={20} strokeWidth={1.5} aria-hidden="true" /></button></h3>
