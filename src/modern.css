@@ -238,3 +238,7 @@ body { background:radial-gradient(ellipse at 90% 22%,#a9dfd45c,transparent 39%),
 @media(prefers-reduced-motion:reduce){.service-summary img,.service-expand-icon{transition:none;}}
 
 .service-expandable { height: auto; align-self: start; }
+
+/* Generated v6 imagery carries its own coordinated grading. */
+.service-summary .service-image img { filter: none !important; }
+.consultation-visual > img { filter: none; object-position: center; }
