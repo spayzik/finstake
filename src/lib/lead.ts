@@ -10,12 +10,17 @@ export type LeadDraft = {
   phone: string;
   communication: CommunicationType | string;
   consent: boolean;
+  marketingConsent?: boolean;
 };
 export type DetailsErrors = Partial<Record<'service' | 'amount' | 'term' | 'comment', string>>;
 export type ContactErrors = Partial<Record<'name' | 'phone' | 'communication' | 'consent', string>>;
-export type LeadConfig = { mode: 'demo' } | { mode: 'unavailable'; reason: string } | {
-  mode: 'live'; endpoint: string; privacyPolicyVersion: string; privacyPolicyUrl: string;
+export type LeadConfigInput = Partial<Record<'endpoint' | 'privacyPolicyVersion' | 'privacyPolicyUrl' |
+  'liveSwitch' | 'releaseId' | 'deploymentOrigin' | 'operatorName' | 'leadConsentVersion' |
+  'leadConsentUrl' | 'withdrawalUrl' | 'marketingConsentVersion' | 'marketingConsentUrl', string>>;
+export type LiveLeadConfig = Required<Omit<LeadConfigInput, 'marketingConsentVersion' | 'marketingConsentUrl'>> & {
+  mode: 'live'; marketingConsentVersion?: string; marketingConsentUrl?: string;
 };
+export type LeadConfig = { mode: 'demo' } | { mode: 'unavailable'; reason: string } | LiveLeadConfig;
 export type LeadResult = { status: 'demo' } | { status: 'accepted'; requestId: string };
 export type LeadPayload = {
   schemaVersion: 1;
@@ -74,28 +79,35 @@ export function validateContact(draft: LeadDraft): ContactErrors {
   return errors;
 }
 
-export function resolveLeadConfig(input: { endpoint?: string; privacyPolicyVersion?: string; privacyPolicyUrl?: string }): LeadConfig {
+// Technical interlock only. These public settings cannot establish legal approval or server readiness.
+export function resolveLeadConfig(input: LeadConfigInput): LeadConfig {
   const endpoint = input.endpoint?.trim();
   if (!endpoint) return { mode: 'demo' };
-  if (!/^\/api\/[A-Za-z0-9/_-]+$/.test(endpoint)) {
+  if (!/^\/api\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/.test(endpoint)) {
     return { mode: 'unavailable', reason: 'Не настроен допустимый адрес приёма заявок.' };
   }
-  const privacyPolicyVersion = input.privacyPolicyVersion?.trim();
-  const privacyPolicyUrl = input.privacyPolicyUrl?.trim();
-  if (!privacyPolicyVersion || privacyPolicyVersion.length > 100 || !privacyPolicyUrl || privacyPolicyUrl.length > 2048) {
-    return { mode: 'unavailable', reason: 'Не настроена опубликованная политика обработки данных.' };
-  }
+  const clean = Object.fromEntries(Object.entries(input).map(([key, value]) => [key, value?.trim()])) as LeadConfigInput;
+  const invalid = () => ({ mode: 'unavailable' as const, reason: 'Приём данных ещё не настроен. Используйте только демонстрационные данные.' });
+  const placeholder = /REQUIRES_OWNER_INPUT|REPLACE|DRAFT|EXAMPLE|\bTBD\b|\bTODO\b/i;
+  const identifier = (value?: string): value is string => Boolean(value && /^[A-Za-z0-9_-]{1,100}$/.test(value) && !placeholder.test(value));
+  const documentPath = (value?: string): value is string => Boolean(value && value.length <= 500
+    && /^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*(?:\.html)?$/.test(value) && !placeholder.test(value));
+  if (clean.liveSwitch !== 'technical-enabled' || !identifier(clean.releaseId)
+    || !identifier(clean.privacyPolicyVersion) || !identifier(clean.leadConsentVersion)
+    || !clean.operatorName || clean.operatorName.length > 300 || /[\u0000-\u001f\u007f]/.test(clean.operatorName) || placeholder.test(clean.operatorName)
+    || !documentPath(clean.privacyPolicyUrl) || !documentPath(clean.leadConsentUrl) || !documentPath(clean.withdrawalUrl)
+    || clean.privacyPolicyUrl === clean.leadConsentUrl) return invalid();
   try {
-    const policy = new URL(privacyPolicyUrl, 'https://finstake.invalid');
-    const safeRelative = privacyPolicyUrl.startsWith('/') && !privacyPolicyUrl.startsWith('//') && !privacyPolicyUrl.includes('\\');
-    const safeAbsolute = privacyPolicyUrl.startsWith('https://') && policy.protocol === 'https:';
-    if ((!safeRelative && !safeAbsolute) || policy.username || policy.password) {
-      return { mode: 'unavailable', reason: 'Не настроена допустимая ссылка на политику обработки данных.' };
-    }
-  } catch {
-    return { mode: 'unavailable', reason: 'Не настроена допустимая ссылка на политику обработки данных.' };
+    const origin = new URL(clean.deploymentOrigin ?? '');
+    if (origin.protocol !== 'https:' || origin.origin !== clean.deploymentOrigin
+      || origin.hostname === 'github.io' || origin.hostname.endsWith('.github.io')
+      || (typeof globalThis.location !== 'undefined' && globalThis.location.origin !== origin.origin)) return invalid();
+  } catch { return invalid(); }
+  if (clean.marketingConsentVersion || clean.marketingConsentUrl) {
+    if (!identifier(clean.marketingConsentVersion) || !documentPath(clean.marketingConsentUrl)
+      || clean.marketingConsentUrl === clean.leadConsentUrl || clean.marketingConsentUrl === clean.privacyPolicyUrl) return invalid();
   }
-  return { mode: 'live', endpoint, privacyPolicyVersion, privacyPolicyUrl };
+  return { ...clean, mode: 'live', endpoint } as LiveLeadConfig;
 }
 
 export async function submitLead(
@@ -113,6 +125,9 @@ export async function submitLead(
   const verifiedConfig = resolveLeadConfig(config);
   if (verifiedConfig.mode !== 'live') {
     throw new LeadSubmissionError('unavailable', 'Отправка пока не настроена.');
+  }
+  if (draft.marketingConsent === true && !verifiedConfig.marketingConsentVersion) {
+    throw new LeadSubmissionError('invalid', 'Согласие на рекламу не настроено. Отправка остановлена.');
   }
   const payload: LeadPayload = {
     schemaVersion: 1,
@@ -139,7 +154,15 @@ export async function submitLead(
       method: 'POST',
       credentials: 'same-origin',
       redirect: 'error',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json', Accept: 'application/json',
+        'X-Lead-Consent-Version': verifiedConfig.leadConsentVersion,
+        'X-Lead-Release-Id': verifiedConfig.releaseId,
+        ...(verifiedConfig.marketingConsentVersion ? {
+          'X-Lead-Marketing-Version': verifiedConfig.marketingConsentVersion,
+          'X-Lead-Marketing-Consent': draft.marketingConsent === true ? 'granted' : 'not-granted',
+        } : {}),
+      },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
@@ -158,6 +181,7 @@ export async function submitLead(
       || !('requestId' in body) || typeof body.requestId !== 'string' || !body.requestId.trim()) {
       throw new LeadSubmissionError('response', 'В ответе нет подтверждения приёма заявки. Повторите попытку позже.');
     }
+    if (controller.signal.aborted) throw new LeadSubmissionError('cancelled', 'Ожидание ответа отменено. Приём заявки не подтверждён.');
     return { status: 'accepted', requestId: body.requestId };
   } catch (error) {
     if (timedOut) throw new LeadSubmissionError('timeout', 'Сервер не ответил вовремя. Приём заявки не подтверждён. Попробуйте ещё раз.');

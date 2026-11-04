@@ -41,13 +41,22 @@ const config = resolveLeadConfig({
   endpoint: import.meta.env.VITE_LEAD_ENDPOINT,
   privacyPolicyVersion: import.meta.env.VITE_PRIVACY_POLICY_VERSION,
   privacyPolicyUrl: import.meta.env.VITE_PRIVACY_POLICY_URL,
+  liveSwitch: import.meta.env.VITE_LEAD_LIVE_SWITCH,
+  releaseId: import.meta.env.VITE_LEAD_RELEASE_ID,
+  deploymentOrigin: import.meta.env.VITE_LEAD_DEPLOYMENT_ORIGIN,
+  operatorName: import.meta.env.VITE_LEAD_OPERATOR_NAME,
+  leadConsentVersion: import.meta.env.VITE_LEAD_CONSENT_VERSION,
+  leadConsentUrl: import.meta.env.VITE_LEAD_CONSENT_URL,
+  withdrawalUrl: import.meta.env.VITE_LEAD_WITHDRAWAL_URL,
+  marketingConsentVersion: import.meta.env.VITE_MARKETING_CONSENT_VERSION,
+  marketingConsentUrl: import.meta.env.VITE_MARKETING_CONSENT_URL,
 });
 
 export function LeadForm({ initialService = 'personal', initialValues, onClose, onPrivacy }: LeadFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [draft, setDraft] = useState<LeadDraft>({
     service: initialService, amount: initialValues?.amount ?? '', term: initialValues?.term ?? '', comment: initialValues?.comment ?? '',
-    name: '', phone: '', communication: 'phone', consent: false,
+    name: '', phone: '', communication: 'phone', consent: false, marketingConsent: false,
   });
   const [errors, setErrors] = useState<DetailsErrors & ContactErrors>({});
   const [pending, setPending] = useState(false);
@@ -117,7 +126,12 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
       setResult(nextResult);
       setAnnouncement(nextResult.status === 'demo' ? 'Данные проверены. Заявка не отправлена.' : 'Сервер подтвердил приём заявки.');
     } catch (error) {
-      if (!mountedRef.current || (error instanceof LeadSubmissionError && error.code === 'cancelled')) return;
+      if (!mountedRef.current) return;
+      if (error instanceof LeadSubmissionError && error.code === 'cancelled') {
+        setSubmitError('Ожидание ответа отменено. Сервер уже мог получить данные; это не отзыв согласия.');
+        setAnnouncement('Ожидание отменено. Приём заявки не подтверждён.');
+        return;
+      }
       setSubmitError(error instanceof LeadSubmissionError ? error.message : 'Отправка не подтверждена. Попробуйте ещё раз.');
       setAnnouncement('Отправка не подтверждена.');
       requestAnimationFrame(() => errorRef.current?.focus());
@@ -143,6 +157,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
             ? 'Данные проверены. Это деморежим — заявка не отправлена.'
             : 'Сервер подтвердил приём заявки. Сохраните номер вашего обращения.'}</p>
           {result.status === 'accepted' && <p className="lead-request-id">Номер обращения: <strong>{result.requestId}</strong></p>}
+          {result.status === 'accepted' && config.mode === 'live' && <a className="lead-privacy-link" href={config.withdrawalUrl}>Обращения по персональным данным и отзыв согласия</a>}
           <div className="lead-summary"><span>{selectedService}</span><strong>{amount?.toLocaleString('ru-RU')} ₽</strong></div>
           <button type="button" className="lead-button lead-button-primary" onClick={onClose}>Готово <Check size={18} aria-hidden="true" /></button>
         </div>
@@ -195,7 +210,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
                       <div className="lead-field">
                         <label className="lead-label" htmlFor={id('comment')}>Что ещё важно учесть? <span className="lead-optional">необязательно</span></label>
                         <textarea id={id('comment')} name="comment" rows={2} maxLength={1000} placeholder="Коротко о вашей задаче" value={draft.comment} onChange={(event) => update('comment', event.target.value)} aria-invalid={Boolean(errors.comment) || undefined} aria-describedby={errors.comment ? id('comment-error') : id('comment-hint')} />
-                        <p className="lead-hint" id={id('comment-hint')}>До 1 000 символов. Не указывайте паспортные и платёжные данные.</p>
+                        <p className="lead-hint" id={id('comment-hint')}>До 1 000 символов. Не указывайте паспортные и платёжные данные, сведения о здоровье и данные других людей.</p>
                         {errors.comment && <p className="lead-field-error" id={id('comment-error')}>{errors.comment}</p>}
                       </div>
                     </div>
@@ -220,10 +235,11 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
                         {errors.communication && <p className="lead-field-error" id={id('communication-error')}>{errors.communication}</p>}
                       </fieldset>
                       <div className="lead-consent-field">
-                        <label className="lead-consent-label" htmlFor={id('consent')}><input id={id('consent')} name="consent" type="checkbox" checked={draft.consent} onChange={(event) => update('consent', event.target.checked)} required aria-invalid={Boolean(errors.consent) || undefined} aria-describedby={errors.consent ? id('consent-error') : undefined} /><span>{isDemo ? 'Я понимаю, что это демоформа и данные не отправляются.' : 'Согласен(на) на обработку указанных данных для связи по обращению.'}</span></label>
-                        {config.mode === 'live' ? <a className="lead-privacy-link" href={config.privacyPolicyUrl} target="_blank" rel="noopener noreferrer">Политика обработки данных ↗</a> : <button type="button" className="lead-privacy-link" onClick={onPrivacy}>Об обработке данных</button>}
+                        <label className="lead-consent-label" htmlFor={id('consent')}><input id={id('consent')} name="consent" type="checkbox" checked={draft.consent} onChange={(event) => update('consent', event.target.checked)} required aria-invalid={Boolean(errors.consent) || undefined} aria-describedby={errors.consent ? id('consent-error') : undefined} /><span>{isDemo ? 'Я понимаю, что это демоформа и данные не отправляются.' : config.mode === 'live' ? <>Даю {config.operatorName} <a href={config.leadConsentUrl} target="_blank" rel="noopener noreferrer">отдельное согласие на обработку данных обращения ↗</a> для ответа и разбора моей задачи.</> : 'Приём реальных данных недоступен. Используйте только демонстрационные данные.'}</span></label>
+                        {config.mode === 'live' ? <><a className="lead-privacy-link" href={config.privacyPolicyUrl} target="_blank" rel="noopener noreferrer">Политика обработки данных ↗</a><a className="lead-privacy-link" href={config.withdrawalUrl} target="_blank" rel="noopener noreferrer">Как отозвать согласие ↗</a></> : <button type="button" className="lead-privacy-link" onClick={onPrivacy}>Об обработке данных</button>}
                         {errors.consent && <p className="lead-field-error" id={id('consent-error')}>{errors.consent}</p>}
                       </div>
+                      {config.mode === 'live' && config.marketingConsentUrl && <div className="lead-consent-field"><label className="lead-consent-label" htmlFor={id('marketing')}><input id={id('marketing')} name="marketingConsent" type="checkbox" checked={draft.marketingConsent === true} onChange={(event) => update('marketingConsent', event.target.checked)} /><span>Необязательно: даю <a href={config.marketingConsentUrl} target="_blank" rel="noopener noreferrer">согласие на рекламу и рассылки ↗</a>. Отказ не влияет на обращение.</span></label></div>}
                     </div>
                   )}
                 </motion.div>
@@ -231,6 +247,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
             </fieldset>
             {submitError && <div className="lead-error-banner" role="alert" tabIndex={-1} ref={errorRef}>{submitError}</div>}
             <div className="lead-actions">
+              {pending && <button className="lead-button lead-button-back" type="button" onClick={() => abortRef.current?.abort()}>Отменить ожидание</button>}
               {step === 2 && <button className="lead-button lead-button-back" type="button" disabled={pending} onClick={() => { setStep(1); setErrors({}); setSubmitError(''); setAnnouncement('Шаг 1 из 2. Ваша задача.'); }}><ArrowLeft size={17} aria-hidden="true" /> Назад</button>}
               <button className="lead-button lead-button-primary" type="submit" disabled={pending || (step === 2 && config.mode === 'unavailable')}>
                 {pending ? <><LoaderCircle className="lead-spinner" size={18} aria-hidden="true" />{isDemo ? 'Проверяем…' : 'Отправляем…'}</> : <>{step === 1 ? 'Далее — контакты' : isDemo ? 'Проверить данные' : submitError ? 'Повторить отправку' : 'Отправить заявку'}<ArrowRight size={18} aria-hidden="true" /></>}
