@@ -37,7 +37,14 @@ const communicationOptions = [
   { value: 'whatsapp', label: 'WhatsApp' },
 ] as const;
 
-const config = resolveLeadConfig({
+const localTest = import.meta.env.DEV && import.meta.env.VITE_LOCAL_SYNTHETIC === '1'
+  && typeof location !== 'undefined' && location.hostname === '127.0.0.1';
+const config = localTest ? {
+  mode: 'live' as const, endpoint: '/api/leads', privacyPolicyVersion: 'test-policy',
+  privacyPolicyUrl: '/privacy', liveSwitch: 'technical-enabled', releaseId: 'test-release',
+  deploymentOrigin: 'http://127.0.0.1:4187', operatorName: 'Тестовый режим',
+  leadConsentVersion: 'test-consent', leadConsentUrl: '/test-consent', withdrawalUrl: '/privacy',
+} : resolveLeadConfig({
   endpoint: import.meta.env.VITE_LEAD_ENDPOINT,
   privacyPolicyVersion: import.meta.env.VITE_PRIVACY_POLICY_VERSION,
   privacyPolicyUrl: import.meta.env.VITE_PRIVACY_POLICY_URL,
@@ -69,6 +76,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
+  const operationRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const prefix = useId();
   const reduceMotion = useReducedMotion();
   const isDemo = config.mode === 'demo';
@@ -88,6 +96,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
   }, [step, result]);
 
   function update<K extends keyof LeadDraft>(field: K, value: LeadDraft[K]) {
+    if (draft[field] !== value) operationRef.current = null;
     setDraft((previous) => ({ ...previous, [field]: value }));
     setErrors((previous) => ({ ...previous, [field]: undefined }));
     setSubmitError('');
@@ -114,6 +123,10 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
     }
     const nextErrors = validateContact(draft);
     if (Object.keys(nextErrors).length) { showErrors(nextErrors); return; }
+    if (localTest && (draft.name.trim() !== 'Тест Тестов' || draft.phone.replace(/[ ()-]/g, '') !== '+447700900123' || draft.comment.trim() !== '')) {
+      setSubmitError('Локальный тест принимает только указанные синтетические данные и пустой комментарий.');
+      return;
+    }
     if (config.mode === 'unavailable') return;
     busyRef.current = true;
     setPending(true);
@@ -121,7 +134,11 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
     setAnnouncement(isDemo ? 'Проверяем данные в деморежиме.' : 'Отправляем заявку.');
     abortRef.current = new AbortController();
     try {
-      const nextResult = await submitLead(draft, config, { signal: abortRef.current.signal });
+      const fingerprint = JSON.stringify(draft);
+      if (!operationRef.current || operationRef.current.fingerprint !== fingerprint) {
+        operationRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      const nextResult = await submitLead(draft, config, { signal: abortRef.current.signal, idempotencyKey: operationRef.current.key });
       if (!mountedRef.current) return;
       setResult(nextResult);
       setAnnouncement(nextResult.status === 'demo' ? 'Данные проверены. Заявка не отправлена.' : 'Сервер подтвердил приём заявки.');
@@ -168,6 +185,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
           <p className="lead-description">{step === 1 ? 'Проанализируем ситуацию и подберём решение под ваши цели. Без предоплаты.' : 'Оставьте контакты — обсудим путь от документов до получения кредита.'}</p>
 
           {isDemo && <div className="lead-mode-note"><ShieldCheck size={17} aria-hidden="true" /><p><strong>Деморежим.</strong> Данные проверяются только в браузере. Заявка не отправляется.</p></div>}
+          {localTest && <div className="lead-mode-note"><p><strong>Локальный тест.</strong> Только синтетические данные: Тест Тестов, +447700900123; комментарий пустой.</p></div>}
           {config.mode === 'unavailable' && <div className="lead-error-banner" role="status">Отправка недоступна. {config.reason}</div>}
 
           <ol className="lead-progress" aria-label={`Шаг ${step} из 2`}>

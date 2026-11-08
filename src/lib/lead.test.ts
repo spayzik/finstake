@@ -290,3 +290,37 @@ test('marketing defaults to refusal and is independent of required lead consent'
   await assert.rejects(submitLead({ ...validDraft, consent: false, marketingConsent: true }, config, { fetcher: async () => { calls++; return Response.json({ status: 'accepted', requestId: 'no' }, { status: 201 }); } }));
   assert.equal(calls, 0);
 });
+
+test('an explicitly supplied operation key is sent unchanged to the server', async () => {
+  let sent: string | null = null;
+  const key = '00000000-0000-4000-8000-000000000001';
+  await submitLead(validDraft, liveConfig, { idempotencyKey: key, fetcher: async (_url, options) => {
+    sent = new Headers(options?.headers).get('Idempotency-Key');
+    return Response.json({ status: 'accepted', requestId: 'test' }, { status: 201 });
+  } });
+  assert.equal(sent, key);
+});
+
+test('a timed-out attempt and manual retry carry the same operation key', async () => {
+  const seen: Array<string | null> = [];
+  const key = '00000000-0000-4000-8000-000000000001';
+  await assert.rejects(submitLead(validDraft, liveConfig, { idempotencyKey: key, timeoutMs: 5,
+    fetcher: async (_url, options) => {
+      seen.push(new Headers(options?.headers).get('Idempotency-Key'));
+      return new Promise((_resolve, reject) => options?.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+    },
+  }), (error) => error instanceof LeadSubmissionError && error.code === 'timeout');
+  const result = await submitLead(validDraft, liveConfig, { idempotencyKey: key, fetcher: async (_url, options) => {
+    seen.push(new Headers(options?.headers).get('Idempotency-Key'));
+    return Response.json({ status: 'accepted', requestId: 'test' }, { status: 201 });
+  } });
+  assert.deepEqual(seen, [key, key]);
+  assert.equal(result.status, 'accepted');
+});
+
+test('conflict and invalid responses are not accepted', async () => {
+  for (const status of [409, 422]) {
+    await assert.rejects(submitLead(validDraft, liveConfig, { fetcher: async () => new Response(null, { status }) }),
+      (error) => error instanceof LeadSubmissionError && error.code === 'http');
+  }
+});

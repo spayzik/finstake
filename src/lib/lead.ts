@@ -113,7 +113,7 @@ export function resolveLeadConfig(input: LeadConfigInput): LeadConfig {
 export async function submitLead(
   draft: LeadDraft,
   config: LeadConfig,
-  options: { signal?: AbortSignal; fetcher?: typeof fetch; timeoutMs?: number } = {},
+  options: { signal?: AbortSignal; fetcher?: typeof fetch; timeoutMs?: number; idempotencyKey?: string } = {},
 ): Promise<LeadResult> {
   if (options.signal?.aborted) throw new LeadSubmissionError('cancelled', 'Отправка отменена.');
   if (Object.keys(validateDetails(draft)).length || Object.keys(validateContact(draft)).length) {
@@ -122,7 +122,15 @@ export async function submitLead(
   if (config.mode === 'unavailable') throw new LeadSubmissionError('unavailable', config.reason);
   if (config.mode === 'demo') return { status: 'demo' };
 
-  const verifiedConfig = resolveLeadConfig(config);
+  // The only bypass is a Vite development build on loopback and an explicitly
+  // synthetic fixture. Production release gates remain unchanged.
+  const localTest = import.meta.env?.DEV === true && import.meta.env.VITE_LOCAL_SYNTHETIC === '1'
+    && typeof location !== 'undefined' && location.hostname === '127.0.0.1'
+    && config.mode === 'live' && config.endpoint === '/api/leads'
+    && config.privacyPolicyVersion === 'test-policy' && config.leadConsentVersion === 'test-consent'
+    && config.releaseId === 'test-release' && draft.name.trim() === 'Тест Тестов'
+    && normalizePhone(draft.phone) === '+447700900123' && draft.comment.trim() === '';
+  const verifiedConfig = localTest ? config : resolveLeadConfig(config);
   if (verifiedConfig.mode !== 'live') {
     throw new LeadSubmissionError('unavailable', 'Отправка пока не настроена.');
   }
@@ -156,6 +164,7 @@ export async function submitLead(
       redirect: 'error',
       headers: {
         'Content-Type': 'application/json', Accept: 'application/json',
+        ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
         'X-Lead-Consent-Version': verifiedConfig.leadConsentVersion,
         'X-Lead-Release-Id': verifiedConfig.releaseId,
         ...(verifiedConfig.marketingConsentVersion ? {

@@ -21,5 +21,9 @@ test('HTTP accept, duplicate, conflict and invalid consent', async () => {
    const second=await send(body); assert.equal(second.status,201); assert.equal((await second.json()).requestId,one.requestId);
    assert.equal((await send({...body,amountRub:2})).status,409);
    assert.equal((await send({...body,consent:{accepted:false,policyVersion:'test-policy'}})).status,422);
+   assert.equal((await send({...body,consent:{accepted:true,policyVersion:'wrong-version'}})).status,422);
+   assert.equal((await send(body,{...headers,'x-lead-consent-version':'wrong-version'})).status,422);
+   const after=JSON.parse(execFileSync(php,['-d',`extension_dir=${ext}`,'-d','extension=pdo_sqlite','server/tests/read_test_db.php',join(dir,'test.sqlite')],{encoding:'utf8'}));
+   assert.equal(after.length,1);
  } finally {server.kill(); await new Promise(r=>server.once('exit',r)); await rm(dir,{recursive:true,force:true});}
 });
