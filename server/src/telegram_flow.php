@@ -18,5 +18,6 @@ function telegramKeyboard(int $step, ?string $leadId = null): array {
     [, $options]=questionForStep($step); $rows=[];
     $prefix = $leadId === null ? 'q' : 'q:'.$leadId;
     foreach ($options as [$title,$value]) $rows[]=[['text'=>$title,'callback_data'=>"$prefix:$step:$value"]];
+    if($leadId!==null) $rows[]=[['text'=>'Главное меню','callback_data'=>'f:menu']];
     return ['inline_keyboard'=>$rows];
 }

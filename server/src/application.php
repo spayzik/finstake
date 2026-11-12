@@ -30,6 +30,7 @@ function notifyManagers(PDO $db,string $id,string $event,array $config): void {
     $labels=['personal'=>'Личные цели','business'=>'Бизнес','secured'=>'Под залог','refinancing'=>'Рефинансирование'];
     $number=sql($db,'SELECT number FROM lead_numbers WHERE lead_id=?',[$id])->fetchColumn();
     $amount=is_int($payload['amountRub']??null)?number_format($payload['amountRub'],0,',',' ').' ₽':'обсудить';
+    if(isset($payload['amountRange'])) $amount=botAmountRanges()[$payload['amountRange']]??'обсудить';
     $term=is_int($payload['termMonths']??null)?$payload['termMonths'].' мес.':'не указан';
     $source=($payload['source']??'')==='finstake-web'?'Сайт':'Бот / другое';
     $statuses=['NEW'=>'Новая','IN_PROGRESS'=>'В работе','COMPLETED'=>'Завершена','CLOSED'=>'Закрыта'];

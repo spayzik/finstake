@@ -47,7 +47,7 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   }
   let rows=await state();assert.equal(rows.telegram_sessions[0].step,3);assert.deepEqual(JSON.parse(rows.telegram_sessions[0].answers),['urgent','business','ready']);
   const delivered=await worker();assert.ok(delivered.sent>=6);assert.equal(delivered.failed,0);
-  assert.ok(calls.some(c=>c.payload.chat_id===44 && c.payload.text.includes('FinStake') && c.payload.reply_markup.inline_keyboard[0][1].text==='Бот / другое'));
+  assert.ok(calls.some(c=>c.payload.chat_id===44 && c.payload.text.includes('FinStake') && c.payload.reply_markup.inline_keyboard[0][1].text==='Оставить заявку'));
   const notifications=calls.filter(c=>c.payload.chat_id===settings.crm_chat_id);assert.equal(notifications.length,2);
   const message=notifications.at(-1).payload;assert.equal(message.message_thread_id,2);assert.ok(message.text.includes('завершён'));
   const action=message.reply_markup.inline_keyboard[0][0].callback_data;
@@ -79,7 +79,7 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   assert.equal((await hook(cb(65,amountAction,45,{id:45,type:'private'}))).status,200);
   rows=await state();assert.equal(rows.leads.length,2);
   const botPayload=JSON.parse(rows.leads.find(l=>l.id!==receipt.requestId).payload);
-  assert.equal(botPayload.source,'telegram-bot');assert.equal(botPayload.amountRub,1000000);assert.equal(botPayload.contact.phone,undefined);
+  assert.equal(botPayload.source,'telegram-bot');assert.equal(botPayload.amountRub,null);assert.equal(botPayload.amountRange,'r3_5');assert.equal(botPayload.contact.phone,undefined);
   const botNotification=rows.outbox.find(o=>o.lead_id!==receipt.requestId && JSON.parse(o.payload).chat_id===settings.crm_chat_id);
   assert.ok(JSON.parse(botNotification.payload).text.includes('Заявка №2'));
   assert.ok(JSON.parse(botNotification.payload).text.includes('Бот / другое'));
