@@ -36,6 +36,7 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   assert.equal((await post('/api/leads',{...body,amountRub:7},headers)).status,409);
   assert.equal((await post('/api/leads',{...body,consent:{accepted:false,policyVersion:'test-policy'}},headers)).status,422);
   assert.equal((await hook({update_id:1},'wrong')).status,403);
+  assert.equal((await hook(start(2,'/start',44))).status,200);
   const token=new URL(receipt.telegramUrl).searchParams.get('start');
   assert.equal((await hook(start(10,'/start '+token))).status,200);
   assert.equal((await hook(start(11,'/start '+token,43))).status,200);
@@ -46,6 +47,7 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   }
   let rows=await state();assert.equal(rows.telegram_sessions[0].step,3);assert.deepEqual(JSON.parse(rows.telegram_sessions[0].answers),['urgent','business','ready']);
   const delivered=await worker();assert.ok(delivered.sent>=6);assert.equal(delivered.failed,0);
+  assert.ok(calls.some(c=>c.payload.chat_id===44 && c.payload.text.includes('помощник FinStake')));
   const notifications=calls.filter(c=>c.payload.chat_id===settings.crm_chat_id);assert.equal(notifications.length,2);
   const message=notifications.at(-1).payload;assert.equal(message.message_thread_id,2);assert.ok(message.text.includes('завершён'));
   const action=message.reply_markup.inline_keyboard[0][0].callback_data;

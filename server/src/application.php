@@ -7,7 +7,7 @@ function rowLock(PDO $db): string { return $db->getAttribute(PDO::ATTR_DRIVER_NA
 function utcNow(): string { return gmdate('Y-m-d H:i:s'); }
 function uniqueViolation(PDOException $e): bool { return in_array($e->getCode(),['23000','23505'],true); }
 function linkToken(string $id,array $config): string { return rtrim(strtr(base64_encode(hash_hmac('sha256','lead:'.$id,$config['link_secret'],true)),'+/','-_'),'='); }
-function enqueueTelegram(PDO $db,string $leadId,string $key,string $method,array $payload): void {
+function enqueueTelegram(PDO $db,?string $leadId,string $key,string $method,array $payload): void {
     if (sql($db,'SELECT 1 FROM outbox WHERE dedupe_key=?',[$key])->fetchColumn()!==false) return;
     sql($db,'INSERT INTO outbox (lead_id,event_type,payload,status,attempts,available_at,created_at,dedupe_key,method) VALUES (?,?,?, ?,0,?,?,?,?)',[$leadId,'TELEGRAM',json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'PENDING',utcNow(),utcNow(),$key,$method]);
 }
@@ -97,6 +97,9 @@ function persistTelegramUpdate(PDO $db,array $update,array $config): void {
                     sql($db,'UPDATE telegram_sessions SET step=?,answers=? WHERE lead_id=?',[$session['step'],json_encode($answers,JSON_THROW_ON_ERROR),$session['lead_id']]);
                     if ($session['step']===3) notifyManagers($db,$session['lead_id'],'screened:'.$session['lead_id'],$config);
                 } else {$session=null;}
+            }
+            if (!$session && is_string($text) && str_starts_with($text,'/')) {
+                enqueueTelegram($db,null,'welcome:'.$updateId,'sendMessage',['chat_id'=>$actor,'text'=>'Здравствуйте! Я помощник FinStake. Чтобы связать разговор с обращением, заполните форму на сайте и нажмите «Продолжить в Telegram». Затем задам три коротких вопроса. Документы и финансовые сведения сюда не отправляйте.','reply_markup'=>['inline_keyboard'=>[[['text'=>'Открыть сайт FinStake','url'=>'https://moneta.pluton-host.ru/']]]]]);
             }
             if ($session) {
                 [$question]=questionForStep((int)$session['step']);

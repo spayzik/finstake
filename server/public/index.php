@@ -22,7 +22,14 @@ try {
  if ($body===false || strlen($body)>16384) reply(413,['status'=>'invalid']);
  $data=json_decode($body,true,32,JSON_THROW_ON_ERROR); if (!is_array($data)) reply(422,['status'=>'invalid']);
  $db=appDatabase($c);
- if ($path==='/api/telegram/webhook') {persistTelegramUpdate($db,$data,$c); reply(200,['status'=>'ok']);}
+ if ($path==='/api/telegram/webhook') {
+    persistTelegramUpdate($db,$data,$c);
+    if (PHP_SAPI!=='cli-server' && !empty($c['telegram_token'])) {
+        require_once __DIR__.'/../src/outbox.php';
+        deliverOutbox($db,new HttpsTelegramTransport($c['telegram_token']),3);
+    }
+    reply(200,['status'=>'ok']);
+ }
  $meta=['lead_consent_version'=>$_SERVER['HTTP_X_LEAD_CONSENT_VERSION']??'','release_id'=>$_SERVER['HTTP_X_LEAD_RELEASE_ID']??''];
  if (isset($_SERVER['HTTP_X_LEAD_MARKETING_VERSION'])) $meta['marketing_version']=$_SERVER['HTTP_X_LEAD_MARKETING_VERSION'];
  if (isset($_SERVER['HTTP_X_LEAD_MARKETING_CONSENT'])) $meta['marketing_consent']=$_SERVER['HTTP_X_LEAD_MARKETING_CONSENT'];
