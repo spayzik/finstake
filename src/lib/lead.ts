@@ -21,7 +21,7 @@ export type LiveLeadConfig = Required<Omit<LeadConfigInput, 'marketingConsentVer
   mode: 'live'; marketingConsentVersion?: string; marketingConsentUrl?: string;
 };
 export type LeadConfig = { mode: 'demo' } | { mode: 'unavailable'; reason: string } | LiveLeadConfig;
-export type LeadResult = { status: 'demo' } | { status: 'accepted'; requestId: string; telegramUrl?: string };
+export type LeadResult = { status: 'demo' } | { status: 'accepted'; requestId: string; requestNumber?: number; telegramUrl?: string };
 export type LeadPayload = {
   schemaVersion: 1;
   source: 'finstake-web';
@@ -194,7 +194,8 @@ export async function submitLead(
     }
     if (controller.signal.aborted) throw new LeadSubmissionError('cancelled', 'Ожидание ответа отменено. Приём заявки не подтверждён.');
     const telegramUrl = 'telegramUrl' in body && typeof body.telegramUrl === 'string' && /^https:\/\/t\.me\/finstake_helperbot\?start=[A-Za-z0-9_-]{20,64}$/.test(body.telegramUrl) ? body.telegramUrl : undefined;
-    return { status: 'accepted', requestId: body.requestId, ...(telegramUrl ? { telegramUrl } : {}) };
+    const requestNumber = 'requestNumber' in body && typeof body.requestNumber === 'number' && Number.isSafeInteger(body.requestNumber) && body.requestNumber > 0 ? body.requestNumber : undefined;
+    return { status: 'accepted', requestId: body.requestId, ...(requestNumber ? { requestNumber } : {}), ...(telegramUrl ? { telegramUrl } : {}) };
   } catch (error) {
     if (timedOut) throw new LeadSubmissionError('timeout', 'Сервер не ответил вовремя. Приём заявки не подтверждён. Попробуйте ещё раз.');
     if (controller.signal.aborted) throw new LeadSubmissionError('cancelled', 'Отправка отменена.');

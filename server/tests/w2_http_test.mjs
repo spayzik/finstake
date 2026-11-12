@@ -47,7 +47,7 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   }
   let rows=await state();assert.equal(rows.telegram_sessions[0].step,3);assert.deepEqual(JSON.parse(rows.telegram_sessions[0].answers),['urgent','business','ready']);
   const delivered=await worker();assert.ok(delivered.sent>=6);assert.equal(delivered.failed,0);
-  assert.ok(calls.some(c=>c.payload.chat_id===44 && c.payload.text.includes('помощник FinStake')));
+  assert.ok(calls.some(c=>c.payload.chat_id===44 && c.payload.text.includes('FinStake') && c.payload.reply_markup.inline_keyboard[0][1].text==='Бот / другое'));
   const notifications=calls.filter(c=>c.payload.chat_id===settings.crm_chat_id);assert.equal(notifications.length,2);
   const message=notifications.at(-1).payload;assert.equal(message.message_thread_id,2);assert.ok(message.text.includes('завершён'));
   const action=message.reply_markup.inline_keyboard[0][0].callback_data;
@@ -63,7 +63,26 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   fail=true;const failure=await worker();assert.ok(failure.failed>0);assert.equal((await state()).outbox.filter(o=>o.status==='PENDING').length,4);
   fail=false;
   assert.equal((await hook(start(40,'/cancel'))).status,200);assert.equal((await state()).telegram_sessions[0].cancelled,1);
-  assert.equal((await hook(start(41,'/start'))).status,200);assert.equal((await state()).telegram_sessions[0].cancelled,0);
+  assert.equal((await hook(cb(41,'f:resume'))).status,200);assert.equal((await state()).telegram_sessions[0].cancelled,0);
+  assert.equal((await hook(start(60,'/menu',45))).status,200);
+  assert.equal((await hook(cb(61,'b:new',45,{id:45,type:'private'}))).status,200);
+  let latest=(await state()).outbox.find(o=>o.dedupe_key==='menu:61');
+  const consentAction=JSON.parse(latest.payload).reply_markup.inline_keyboard[0][0].callback_data;
+  assert.equal((await hook(cb(62,consentAction,45,{id:45,type:'private'}))).status,200);
+  latest=(await state()).outbox.find(o=>o.dedupe_key==='menu:62');
+  const serviceAction=JSON.parse(latest.payload).reply_markup.inline_keyboard[0][0].callback_data;
+  assert.equal((await hook(cb(63,serviceAction,45,{id:45,type:'private'}))).status,200);
+  latest=(await state()).outbox.find(o=>o.dedupe_key==='menu:63');
+  const amountAction=JSON.parse(latest.payload).reply_markup.inline_keyboard[1][0].callback_data;
+  const amountUpdate=cb(64,amountAction,45,{id:45,type:'private'});
+  assert.equal((await hook(amountUpdate)).status,200);assert.equal((await hook(amountUpdate)).status,200);
+  assert.equal((await hook(cb(65,amountAction,45,{id:45,type:'private'}))).status,200);
+  rows=await state();assert.equal(rows.leads.length,2);
+  const botPayload=JSON.parse(rows.leads.find(l=>l.id!==receipt.requestId).payload);
+  assert.equal(botPayload.source,'telegram-bot');assert.equal(botPayload.amountRub,1000000);assert.equal(botPayload.contact.phone,undefined);
+  const botNotification=rows.outbox.find(o=>o.lead_id!==receipt.requestId && JSON.parse(o.payload).chat_id===settings.crm_chat_id);
+  assert.ok(JSON.parse(botNotification.payload).text.includes('Заявка №2'));
+  assert.ok(JSON.parse(botNotification.payload).text.includes('Бот / другое'));
   for(const term of [body.contact.name,body.contact.phone,settings.webhook_secret,token])assert.ok(!logs.includes(term),'sensitive fixture leaked to process log');
   for(const c of calls.filter(c=>c.payload.chat_id===settings.crm_chat_id))for(const term of [body.contact.name,body.contact.phone]) assert.ok(!JSON.stringify(c).includes(term));
  } finally {proc.kill();if(proc.exitCode===null)await new Promise(r=>proc.once('exit',r));await new Promise(r=>mock.close(r));await rm(dir,{recursive:true,force:true});}

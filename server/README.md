@@ -13,3 +13,12 @@ PHP 8.2+ with pdo_mysql, curl, mbstring; MySQL/MariaDB InnoDB, utf8mb4; HTTPS; c
 Tests: `npm test`, `npm run build`, `node --test server/tests/w2_http_test.mjs` (portable PHP path ../.local-tools/php). For MySQL set FINSTAKE_MYSQL_TEST to a private JSON connection for a NEW EMPTY test database; same HTTP suite applies actual migrations and checks database state. Mock API is loopback only. Real Telegram test is separate, not implied by mock PASS.
 
 Backups: encrypted daily DB copy outside webroot, restricted access and restore test; owner must approve retention and deletion periods before real intake. Monitor cron exit and FAILED outbox count without logging payloads. Do not export contact payloads to Telegram. No manager contact-view UI is included in this slice.
+
+## Hosted synthetic pilot (2026-11-12)
+The existing React form is available behind a 15-minute authenticated test session at /w2-test/. Public homepage stays demo. Test access key remains only in private config; it is never built into JavaScript. Test endpoints continue rejecting all names/phones except the reserved fixture. Documents remain unpublished drafts.
+
+Incoming Telegram webhook timed out at this host. The installed fallback is official getUpdates via bounded cron cycles, six polls with eight-second intervals, protected by flock. Network failures can still delay answers; a live webhook PASS is not claimed. poll.php currently accepts only configured Owner/manager test IDs. No general public bot intake is authorized.
+
+Bot menu: /start, /menu, /help, company/process/payment/documents, linked request status. Site attribution comes from the saved website request and opaque link, not a user's assertion. The bot-only path records an explicit test acknowledgement, service, amount, source telegram-bot, then the same three screening questions. No names, phones, PDF or free financial text are requested. Public real-data consent remains blocked.
+
+Migration 004 assigns sequential display numbers without changing opaque internal requestId/idempotency or callback identity. Topic cards include source, service, selected amount, term and screening answers as explicitly requested by Owner; contacts and comments remain outside the group. Older cards may have stale revision buttons; they now return an explanation instead of mutating newer status.

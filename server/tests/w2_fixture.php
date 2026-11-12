@@ -16,4 +16,6 @@ CREATE TABLE telegram_updates(update_id INTEGER PRIMARY KEY,received_at TEXT NOT
 CREATE TABLE telegram_callbacks(callback_id TEXT PRIMARY KEY,received_at TEXT NOT NULL);
 CREATE TABLE lead_status_history(id INTEGER PRIMARY KEY AUTOINCREMENT,lead_id TEXT,old_status TEXT,new_status TEXT,actor_id INTEGER,changed_at TEXT);
 CREATE TABLE outbox(id INTEGER PRIMARY KEY AUTOINCREMENT,lead_id TEXT,event_type TEXT,payload TEXT,status TEXT NOT NULL DEFAULT 'PENDING',attempts INTEGER NOT NULL DEFAULT 0,available_at TEXT,created_at TEXT,dedupe_key TEXT UNIQUE,method TEXT NOT NULL DEFAULT 'sendMessage',lease_id TEXT,lease_until TEXT);
-CREATE TABLE request_limits(bucket TEXT PRIMARY KEY,hits INTEGER,expires_at TEXT);");
+CREATE TABLE request_limits(bucket TEXT PRIMARY KEY,hits INTEGER,expires_at TEXT);
+CREATE TABLE lead_numbers(number INTEGER PRIMARY KEY AUTOINCREMENT,lead_id TEXT NOT NULL UNIQUE REFERENCES leads(id));
+CREATE TABLE bot_drafts(actor_id INTEGER PRIMARY KEY,nonce TEXT NOT NULL,stage TEXT NOT NULL,service TEXT,consent_at TEXT,lead_id TEXT,updated_at TEXT);");

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/repositories.php';
 require_once __DIR__.'/telegram_flow.php';
+require_once __DIR__.'/bot_menu.php';
 function sql(PDO $db,string $query,array $values=[]): PDOStatement { $s=$db->prepare($query); $s->execute($values); return $s; }
 function rowLock(PDO $db): string { return $db->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':''; }
 function utcNow(): string { return gmdate('Y-m-d H:i:s'); }
@@ -22,10 +23,20 @@ function managerKeyboard(array $lead): array {
 }
 function notifyManagers(PDO $db,string $id,string $event,array $config): void {
     $lead=sql($db,'SELECT id,status,revision,payload,created_at FROM leads WHERE id=?',[$id])->fetch(PDO::FETCH_ASSOC);
-    $screen=sql($db,'SELECT step FROM telegram_sessions WHERE lead_id=?',[$id])->fetchColumn();
-    $service=json_decode($lead['payload'],true,32,JSON_THROW_ON_ERROR)['service'];
+    $session=sql($db,'SELECT step,answers FROM telegram_sessions WHERE lead_id=?',[$id])->fetch(PDO::FETCH_ASSOC);
+    $screen=$session['step']??0;
+    $payload=json_decode($lead['payload'],true,32,JSON_THROW_ON_ERROR);
+    $service=$payload['service'];
     $labels=['personal'=>'Личные цели','business'=>'Бизнес','secured'=>'Под залог','refinancing'=>'Рефинансирование'];
-    enqueueTelegram($db,$id,$event,'sendMessage',['chat_id'=>$config['crm_chat_id'],'message_thread_id'=>$config['leads_topic_id'],'text'=>'Обращение '.$id."\nНаправление: ".($labels[$service]??'Не указано')."\nСтатус: ".$lead['status']."\nОпрос: ".((int)$screen===3?'завершён':'не завершён')."\nВремя UTC: ".utcNow(),'reply_markup'=>managerKeyboard($lead)]);
+    $number=sql($db,'SELECT number FROM lead_numbers WHERE lead_id=?',[$id])->fetchColumn();
+    $amount=is_int($payload['amountRub']??null)?number_format($payload['amountRub'],0,',',' ').' ₽':'обсудить';
+    $term=is_int($payload['termMonths']??null)?$payload['termMonths'].' мес.':'не указан';
+    $source=($payload['source']??'')==='finstake-web'?'Сайт':'Бот / другое';
+    $statuses=['NEW'=>'Новая','IN_PROGRESS'=>'В работе','COMPLETED'=>'Завершена','CLOSED'=>'Закрыта'];
+    $answers=json_decode($session['answers']??'[]',true);
+    $answerLabels=['urgent'=>'Как можно скорее','soon'=>'В ближайшее время','later'=>'Изучает варианты','personal'=>'Для себя','business'=>'Для бизнеса','secured'=>'С обеспечением','ready'=>'Готов к консультации','questions'=>'Есть вопросы','not_ready'=>'Пока не готов'];
+    $summary='';foreach(['Срочность','Категория','Консультация'] as $i=>$label)if(isset($answers[$i]))$summary.="\n".$label.': '.($answerLabels[$answers[$i]]??'не указано');
+    enqueueTelegram($db,$id,$event,'sendMessage',['chat_id'=>$config['crm_chat_id'],'message_thread_id'=>$config['leads_topic_id'],'text'=>'Заявка №'.$number."\nИсточник: ".$source."\nНаправление: ".($labels[$service]??'Не указано')."\nСумма: ".$amount."\nСрок: ".$term."\nСтатус: ".($statuses[$lead['status']]??$lead['status'])."\nОпрос: ".((int)$screen===3?'завершён':'не завершён').$summary."\nВремя UTC: ".utcNow(),'reply_markup'=>managerKeyboard($lead)]);
 }
 function acceptLead(PDO $db,array $payload,array $meta,string $key,array $config): array {
     $fingerprint=hash('sha256',json_encode([$payload,$meta],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));
@@ -35,12 +46,14 @@ function acceptLead(PDO $db,array $payload,array $meta,string $key,array $config
         if ($old) { if (!hash_equals($old['fingerprint'],$fingerprint)) throw new DomainException('conflict'); $id=$old['id']; }
         else {
             $id=bin2hex(random_bytes(16)); $repo->create($id,$key,$fingerprint,$payload,utcNow());
+            sql($db,'INSERT INTO lead_numbers (lead_id) VALUES (?)',[$id]);
             (new ConsentRepository($db))->create($id,$meta,$payload['consent']['policyVersion'],utcNow());
             (new TelegramSessionRepository($db))->create($id,hash('sha256',linkToken($id,$config)),gmdate('Y-m-d H:i:s',time()+1800));
             notifyManagers($db,$id,'lead:'.$id,$config);
         }
         $session=sql($db,'SELECT token_hash,token_expires_at FROM telegram_sessions WHERE lead_id=?',[$id])->fetch(PDO::FETCH_ASSOC);
         $result=['status'=>'accepted','requestId'=>$id];
+        $result['requestNumber']=(int)sql($db,'SELECT number FROM lead_numbers WHERE lead_id=?',[$id])->fetchColumn();
         if ($session && $session['token_hash']!==null && $session['token_expires_at']>utcNow()) $result['telegramUrl']='https://t.me/finstake_helperbot?start='.linkToken($id,$config);
         $db->commit(); return $result;
     } catch (PDOException $e) {
@@ -85,6 +98,8 @@ function persistTelegramUpdate(PDO $db,array $update,array $config): void {
             }
             if ($ack!==null) enqueueTelegram($db,null,'ack:'.$callbackId,'answerCallbackQuery',['callback_query_id'=>$callbackId,'text'=>$ack]);
         } elseif (is_array($chat) && ($chat['type']??null)==='private' && is_int($chat['id']??null) && $chat['id']===$actor) {
+            if(botMenuUpdate($db,$actor,$text,$data,$callbackId??null,$updateId,$config)){$db->commit();return;}
+            if($data==='f:resume'){$text='/start';$data=null;}
             $session=null; $reply=null;
             if (is_string($text) && preg_match('/^\/start ([A-Za-z0-9_-]{20,64})$/D',$text,$m)) {
                 $session=sql($db,'SELECT * FROM telegram_sessions WHERE token_hash=? AND token_expires_at>? AND chat_id IS NULL'.rowLock($db),[hash('sha256',$m[1]),utcNow()])->fetch(PDO::FETCH_ASSOC);

@@ -175,7 +175,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
           <p className="lead-description">{result.status === 'demo'
             ? 'Данные проверены. Это деморежим — заявка не отправлена.'
             : 'Сервер подтвердил приём заявки. Сохраните номер вашего обращения.'}</p>
-          {result.status === 'accepted' && <p className="lead-request-id">Номер обращения: <strong>{result.requestId}</strong></p>}
+          {result.status === 'accepted' && <p className="lead-request-id">Номер обращения: <strong>{result.requestNumber ?? result.requestId}</strong></p>}
           {result.status === 'accepted' && config.mode === 'live' && <a className="lead-privacy-link" href={config.withdrawalUrl}>Обращения по персональным данным и отзыв согласия</a>}
           {result.status === 'accepted' && result.telegramUrl && <a className="lead-button lead-button-primary" href={result.telegramUrl} target="_blank" rel="noopener noreferrer">Продолжить в Telegram</a>}
           <div className="lead-summary"><span>{selectedService}</span><strong>{amount?.toLocaleString('ru-RU')} ₽</strong></div>
@@ -188,7 +188,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
           <p className="lead-description">{step === 1 ? 'Проанализируем ситуацию и подберём решение под ваши цели. Без предоплаты.' : 'Оставьте контакты — обсудим путь от документов до получения кредита.'}</p>
 
           {isDemo && <div className="lead-mode-note"><ShieldCheck size={17} aria-hidden="true" /><p><strong>Деморежим.</strong> Данные проверяются только в браузере. Заявка не отправляется.</p></div>}
-          {localTest && <div className="lead-mode-note"><p><strong>Локальный тест.</strong> Только синтетические данные: Тест Тестов, +447700900123; комментарий пустой.</p></div>}
+          {localTest && <div className="lead-mode-note"><p><strong>Тестовый контур.</strong> Только синтетические данные: Тест Тестов, +447700900123; комментарий пустой.</p></div>}
           {config.mode === 'unavailable' && <div className="lead-error-banner" role="status">Отправка недоступна. {config.reason}</div>}
 
           <ol className="lead-progress" aria-label={`Шаг ${step} из 2`}>
