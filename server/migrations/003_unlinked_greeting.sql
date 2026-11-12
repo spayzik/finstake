@@ -1,0 +1,1 @@
+ALTER TABLE outbox MODIFY lead_id CHAR(32) NULL;

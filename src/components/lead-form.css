@@ -50,8 +50,10 @@
 .lead-consent-field { margin-top: 2px; }
 .lead-consent-label { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding-block: 2px; font-size: 13px; line-height: 1.7; color: var(--muted); cursor: pointer; }
 .lead-consent-label input { flex: 0 0 auto; margin: 2px 0 0; width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+.lead-consent-label a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+.lead-consent-label a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 .lead-privacy-link { display: inline-flex; align-items: center; min-height: 44px; margin: 0 0 0 26px; padding: 10px 0; border: 0; background: none; color: var(--brand); text-decoration: underline; text-underline-offset: 3px; font: inherit; font-size: 13px; line-height: 1.6; cursor: pointer; }
-.lead-actions { display: flex; gap: 10px; margin-top: 24px; }
+.lead-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .lead-button { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 48px; padding: 13px 18px; border-radius: 7px; border: 1px solid transparent; font: inherit; font-size: 13px; font-weight: 650; line-height: 1.4; cursor: pointer; transition: background 150ms, transform 150ms; }
 .lead-button-primary { flex: 1; background: var(--brand); color: white; }
 .lead-button-primary:hover:not(:disabled) { background: #062e28; }

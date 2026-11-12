@@ -6,3 +6,7 @@ dist/
 .env.*
 !.env.example
 evidence/
+.local-tools/
+
+server/config.json
+.secrets/

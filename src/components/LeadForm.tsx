@@ -37,17 +37,35 @@ const communicationOptions = [
   { value: 'whatsapp', label: 'WhatsApp' },
 ] as const;
 
-const config = resolveLeadConfig({
+const localTest = typeof location !== 'undefined' && (
+  (import.meta.env.DEV && import.meta.env.VITE_LOCAL_SYNTHETIC === '1' && location.hostname === '127.0.0.1')
+  || (import.meta.env.VITE_HOSTED_SYNTHETIC === '1' && location.protocol === 'https:' && location.pathname === '/w2-test/')
+);
+const config = localTest ? {
+  mode: 'live' as const, endpoint: '/api/leads', privacyPolicyVersion: 'test-policy',
+  privacyPolicyUrl: '/privacy', liveSwitch: 'technical-enabled', releaseId: 'test-release',
+  deploymentOrigin: location.origin, operatorName: 'Тестовый режим',
+  leadConsentVersion: 'test-consent', leadConsentUrl: '/test-consent', withdrawalUrl: '/privacy',
+} : resolveLeadConfig({
   endpoint: import.meta.env.VITE_LEAD_ENDPOINT,
   privacyPolicyVersion: import.meta.env.VITE_PRIVACY_POLICY_VERSION,
   privacyPolicyUrl: import.meta.env.VITE_PRIVACY_POLICY_URL,
+  liveSwitch: import.meta.env.VITE_LEAD_LIVE_SWITCH,
+  releaseId: import.meta.env.VITE_LEAD_RELEASE_ID,
+  deploymentOrigin: import.meta.env.VITE_LEAD_DEPLOYMENT_ORIGIN,
+  operatorName: import.meta.env.VITE_LEAD_OPERATOR_NAME,
+  leadConsentVersion: import.meta.env.VITE_LEAD_CONSENT_VERSION,
+  leadConsentUrl: import.meta.env.VITE_LEAD_CONSENT_URL,
+  withdrawalUrl: import.meta.env.VITE_LEAD_WITHDRAWAL_URL,
+  marketingConsentVersion: import.meta.env.VITE_MARKETING_CONSENT_VERSION,
+  marketingConsentUrl: import.meta.env.VITE_MARKETING_CONSENT_URL,
 });
 
 export function LeadForm({ initialService = 'personal', initialValues, onClose, onPrivacy }: LeadFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [draft, setDraft] = useState<LeadDraft>({
     service: initialService, amount: initialValues?.amount ?? '', term: initialValues?.term ?? '', comment: initialValues?.comment ?? '',
-    name: '', phone: '', communication: 'phone', consent: false,
+    name: '', phone: '', communication: 'phone', consent: false, marketingConsent: false,
   });
   const [errors, setErrors] = useState<DetailsErrors & ContactErrors>({});
   const [pending, setPending] = useState(false);
@@ -60,6 +78,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
+  const operationRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const prefix = useId();
   const reduceMotion = useReducedMotion();
   const isDemo = config.mode === 'demo';
@@ -79,6 +98,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
   }, [step, result]);
 
   function update<K extends keyof LeadDraft>(field: K, value: LeadDraft[K]) {
+    if (draft[field] !== value) operationRef.current = null;
     setDraft((previous) => ({ ...previous, [field]: value }));
     setErrors((previous) => ({ ...previous, [field]: undefined }));
     setSubmitError('');
@@ -105,6 +125,10 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
     }
     const nextErrors = validateContact(draft);
     if (Object.keys(nextErrors).length) { showErrors(nextErrors); return; }
+    if (localTest && (draft.name.trim() !== 'Тест Тестов' || draft.phone.replace(/[ ()-]/g, '') !== '+447700900123' || draft.comment.trim() !== '')) {
+      setSubmitError('Локальный тест принимает только указанные синтетические данные и пустой комментарий.');
+      return;
+    }
     if (config.mode === 'unavailable') return;
     busyRef.current = true;
     setPending(true);
@@ -112,12 +136,21 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
     setAnnouncement(isDemo ? 'Проверяем данные в деморежиме.' : 'Отправляем заявку.');
     abortRef.current = new AbortController();
     try {
-      const nextResult = await submitLead(draft, config, { signal: abortRef.current.signal });
+      const fingerprint = JSON.stringify(draft);
+      if (!operationRef.current || operationRef.current.fingerprint !== fingerprint) {
+        operationRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      const nextResult = await submitLead(draft, config, { signal: abortRef.current.signal, idempotencyKey: operationRef.current.key });
       if (!mountedRef.current) return;
       setResult(nextResult);
       setAnnouncement(nextResult.status === 'demo' ? 'Данные проверены. Заявка не отправлена.' : 'Сервер подтвердил приём заявки.');
     } catch (error) {
-      if (!mountedRef.current || (error instanceof LeadSubmissionError && error.code === 'cancelled')) return;
+      if (!mountedRef.current) return;
+      if (error instanceof LeadSubmissionError && error.code === 'cancelled') {
+        setSubmitError('Ожидание ответа отменено. Сервер уже мог получить данные; это не отзыв согласия.');
+        setAnnouncement('Ожидание отменено. Приём заявки не подтверждён.');
+        return;
+      }
       setSubmitError(error instanceof LeadSubmissionError ? error.message : 'Отправка не подтверждена. Попробуйте ещё раз.');
       setAnnouncement('Отправка не подтверждена.');
       requestAnimationFrame(() => errorRef.current?.focus());
@@ -142,7 +175,9 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
           <p className="lead-description">{result.status === 'demo'
             ? 'Данные проверены. Это деморежим — заявка не отправлена.'
             : 'Сервер подтвердил приём заявки. Сохраните номер вашего обращения.'}</p>
-          {result.status === 'accepted' && <p className="lead-request-id">Номер обращения: <strong>{result.requestId}</strong></p>}
+          {result.status === 'accepted' && <p className="lead-request-id">Номер обращения: <strong>{result.requestNumber ?? result.requestId}</strong></p>}
+          {result.status === 'accepted' && config.mode === 'live' && <a className="lead-privacy-link" href={config.withdrawalUrl}>Обращения по персональным данным и отзыв согласия</a>}
+          {result.status === 'accepted' && result.telegramUrl && <a className="lead-button lead-button-primary" href={result.telegramUrl} target="_blank" rel="noopener noreferrer">Продолжить в Telegram</a>}
           <div className="lead-summary"><span>{selectedService}</span><strong>{amount?.toLocaleString('ru-RU')} ₽</strong></div>
           <button type="button" className="lead-button lead-button-primary" onClick={onClose}>Готово <Check size={18} aria-hidden="true" /></button>
         </div>
@@ -153,6 +188,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
           <p className="lead-description">{step === 1 ? 'Проанализируем ситуацию и подберём решение под ваши цели. Без предоплаты.' : 'Оставьте контакты — обсудим путь от документов до получения кредита.'}</p>
 
           {isDemo && <div className="lead-mode-note"><ShieldCheck size={17} aria-hidden="true" /><p><strong>Деморежим.</strong> Данные проверяются только в браузере. Заявка не отправляется.</p></div>}
+          {localTest && <div className="lead-mode-note"><p><strong>Тестовый контур.</strong> Только синтетические данные: Тест Тестов, +447700900123; комментарий пустой.</p></div>}
           {config.mode === 'unavailable' && <div className="lead-error-banner" role="status">Отправка недоступна. {config.reason}</div>}
 
           <ol className="lead-progress" aria-label={`Шаг ${step} из 2`}>
@@ -195,7 +231,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
                       <div className="lead-field">
                         <label className="lead-label" htmlFor={id('comment')}>Что ещё важно учесть? <span className="lead-optional">необязательно</span></label>
                         <textarea id={id('comment')} name="comment" rows={2} maxLength={1000} placeholder="Коротко о вашей задаче" value={draft.comment} onChange={(event) => update('comment', event.target.value)} aria-invalid={Boolean(errors.comment) || undefined} aria-describedby={errors.comment ? id('comment-error') : id('comment-hint')} />
-                        <p className="lead-hint" id={id('comment-hint')}>До 1 000 символов. Не указывайте паспортные и платёжные данные.</p>
+                        <p className="lead-hint" id={id('comment-hint')}>До 1 000 символов. Не указывайте паспортные и платёжные данные, сведения о здоровье и данные других людей.</p>
                         {errors.comment && <p className="lead-field-error" id={id('comment-error')}>{errors.comment}</p>}
                       </div>
                     </div>
@@ -220,10 +256,11 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
                         {errors.communication && <p className="lead-field-error" id={id('communication-error')}>{errors.communication}</p>}
                       </fieldset>
                       <div className="lead-consent-field">
-                        <label className="lead-consent-label" htmlFor={id('consent')}><input id={id('consent')} name="consent" type="checkbox" checked={draft.consent} onChange={(event) => update('consent', event.target.checked)} required aria-invalid={Boolean(errors.consent) || undefined} aria-describedby={errors.consent ? id('consent-error') : undefined} /><span>{isDemo ? 'Я понимаю, что это демоформа и данные не отправляются.' : 'Согласен(на) на обработку указанных данных для связи по обращению.'}</span></label>
-                        {config.mode === 'live' ? <a className="lead-privacy-link" href={config.privacyPolicyUrl} target="_blank" rel="noopener noreferrer">Политика обработки данных ↗</a> : <button type="button" className="lead-privacy-link" onClick={onPrivacy}>Об обработке данных</button>}
+                        <label className="lead-consent-label" htmlFor={id('consent')}><input id={id('consent')} name="consent" type="checkbox" checked={draft.consent} onChange={(event) => update('consent', event.target.checked)} required aria-invalid={Boolean(errors.consent) || undefined} aria-describedby={errors.consent ? id('consent-error') : undefined} /><span>{isDemo ? 'Я понимаю, что это демоформа и данные не отправляются.' : config.mode === 'live' ? <>Даю {config.operatorName} <a href={config.leadConsentUrl} target="_blank" rel="noopener noreferrer">отдельное согласие на обработку данных обращения ↗</a> для ответа и разбора моей задачи.</> : 'Приём реальных данных недоступен. Используйте только демонстрационные данные.'}</span></label>
+                        {config.mode === 'live' ? <><a className="lead-privacy-link" href={config.privacyPolicyUrl} target="_blank" rel="noopener noreferrer">Политика обработки данных ↗</a><a className="lead-privacy-link" href={config.withdrawalUrl} target="_blank" rel="noopener noreferrer">Как отозвать согласие ↗</a></> : <button type="button" className="lead-privacy-link" onClick={onPrivacy}>Об обработке данных</button>}
                         {errors.consent && <p className="lead-field-error" id={id('consent-error')}>{errors.consent}</p>}
                       </div>
+                      {config.mode === 'live' && config.marketingConsentUrl && <div className="lead-consent-field"><label className="lead-consent-label" htmlFor={id('marketing')}><input id={id('marketing')} name="marketingConsent" type="checkbox" checked={draft.marketingConsent === true} onChange={(event) => update('marketingConsent', event.target.checked)} /><span>Необязательно: даю <a href={config.marketingConsentUrl} target="_blank" rel="noopener noreferrer">согласие на рекламу и рассылки ↗</a>. Отказ не влияет на обращение.</span></label></div>}
                     </div>
                   )}
                 </motion.div>
@@ -231,6 +268,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
             </fieldset>
             {submitError && <div className="lead-error-banner" role="alert" tabIndex={-1} ref={errorRef}>{submitError}</div>}
             <div className="lead-actions">
+              {pending && <button className="lead-button lead-button-back" type="button" onClick={() => abortRef.current?.abort()}>Отменить ожидание</button>}
               {step === 2 && <button className="lead-button lead-button-back" type="button" disabled={pending} onClick={() => { setStep(1); setErrors({}); setSubmitError(''); setAnnouncement('Шаг 1 из 2. Ваша задача.'); }}><ArrowLeft size={17} aria-hidden="true" /> Назад</button>}
               <button className="lead-button lead-button-primary" type="submit" disabled={pending || (step === 2 && config.mode === 'unavailable')}>
                 {pending ? <><LoaderCircle className="lead-spinner" size={18} aria-hidden="true" />{isDemo ? 'Проверяем…' : 'Отправляем…'}</> : <>{step === 1 ? 'Далее — контакты' : isDemo ? 'Проверить данные' : submitError ? 'Повторить отправку' : 'Отправить заявку'}<ArrowRight size={18} aria-hidden="true" /></>}

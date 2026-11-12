@@ -1,0 +1,26 @@
+# W2 shared hosting
+
+PHP 8.2+ with pdo_mysql, curl, mbstring; MySQL/MariaDB InnoDB, utf8mb4; HTTPS; cron. This release is SYNTHETIC ONLY. Public frontend remains demo. Legal drafts in docs/legal are not public policies.
+
+1. Upload server/ outside public_html, for example /home/ACCOUNT/private/finstake/server. Store config.json outside public_html, permissions 600, directories 700; configure FINSTAKE_CONFIG to its absolute path in PHP environment (including cron). Never put credentials in Vite variables.
+2. Create an isolated test DB and restricted DB user. Run `php server/bin/migrate.php` once; SQL DDL is not atomic: on failure inspect partially applied migration before retrying. Back up before migrations. No automatic destructive reset.
+3. In public_html/api/index.php use a PHP wrapper requiring the absolute private server/public/index.php. Copy server/public/.htaccess to public_html/api/. Verify /api/leads and /api/telegram/webhook routing; never upload src, migrations, tests or config to webroot. Disable display_errors and request-body logging. Do not record query strings, authorization headers or Telegram tokens in host logs.
+4. Fill private config using config.example.json. Generate independent random secrets with `php -r "echo bin2hex(random_bytes(32));"`. Enter a NEW bot token directly into private config; do not use the disclosed token. Confirm actual chat/topic/manager IDs; example IDs are placeholders.
+5. Run `php server/bin/webhook.php` to set and read back HTTPS URL. This is not proof of delivery. Cron every minute: FINSTAKE_CONFIG=/absolute/private/config.json /usr/bin/php /absolute/private/server/bin/worker.php. Prevent public HTTP access to CLI scripts. Outbox retries five times, then FAILED for operator investigation; transport timeout 6 sec, lease 120 sec. Delivery is at least once: a crash after remote acceptance may duplicate a notification, but not the lead/status mutation.
+6. Hosted synthetic lead API additionally requires X-Finstake-Test-Key from a private test client. Do not embed this access key in a public build. API only accepts Тест Тестов / +447700900123 and empty comment. Default browser build intentionally cannot activate real collection. Local UI: VITE_LOCAL_SYNTHETIC=1 npm run dev, PHP server on 127.0.0.1:47839 with server/public/index.php router, FINSTAKE_CONFIG set outside document root. Production build ignores this dev override.
+7. Verify receipt 201 only after commit, repeated key same ID, changed payload 409, invalid consent 422, webhook secret 403, three callbacks, topic delivery and manager status. Check DB and Telegram independently. Keep real PII disabled until approved operator/documents and deployment review.
+
+Tests: `npm test`, `npm run build`, `node --test server/tests/w2_http_test.mjs` (portable PHP path ../.local-tools/php). For MySQL set FINSTAKE_MYSQL_TEST to a private JSON connection for a NEW EMPTY test database; same HTTP suite applies actual migrations and checks database state. Mock API is loopback only. Real Telegram test is separate, not implied by mock PASS.
+
+Backups: encrypted daily DB copy outside webroot, restricted access and restore test; owner must approve retention and deletion periods before real intake. Monitor cron exit and FAILED outbox count without logging payloads. Do not export contact payloads to Telegram. No manager contact-view UI is included in this slice.
+
+## Hosted synthetic pilot (2026-11-12)
+The existing React form is available behind a 15-minute authenticated test session at /w2-test/. Public homepage stays demo. Test access key remains only in private config; it is never built into JavaScript. Test endpoints continue rejecting all names/phones except the reserved fixture. Documents remain unpublished drafts.
+
+Incoming Telegram webhook timed out at this host. The installed fallback is official getUpdates via bounded cron cycles, six polls with eight-second intervals, protected by flock. Network failures can still delay answers; a live webhook PASS is not claimed. poll.php currently accepts only configured Owner/manager test IDs. No general public bot intake is authorized.
+
+Bot menu: /start, /menu, /help, company/process/payment/documents, linked request status. Site attribution comes from the saved website request and opaque link, not a user's assertion. The bot-only path records an explicit test acknowledgement, service, amount, source telegram-bot, then the same three screening questions. No names, phones, PDF or free financial text are requested. Public real-data consent remains blocked.
+
+Migration 004 assigns sequential display numbers without changing opaque internal requestId/idempotency or callback identity. Topic cards include source, service, selected amount, term and screening answers as explicitly requested by Owner; contacts and comments remain outside the group. Older cards may have stale revision buttons; they now return an explanation instead of mutating newer status.
+
+Sequential display numbers are unique and increasing, but MySQL may leave gaps after rollback or bulk allocation; existing IDs are never renumbered. Poll receive failures do not block draining queued replies. Transient retries use 2–32 second backoff (maximum five attempts); network failures still affect latency.
