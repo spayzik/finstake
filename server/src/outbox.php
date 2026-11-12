@@ -8,7 +8,7 @@ function deliverOutbox(PDO $db,TelegramTransport $transport,int $limit=25): arra
     for ($i=0;$i<min(100,$limit);$i++) {
         $now=utcNow();
         sql($db,"UPDATE outbox SET status=CASE WHEN attempts>=5 THEN 'FAILED' ELSE 'PENDING' END,lease_id=NULL,lease_until=NULL WHERE status='SENDING' AND lease_until<?",[$now]);
-        $item=sql($db,"SELECT * FROM outbox WHERE status='PENDING' AND attempts<5 AND available_at<=? ORDER BY id LIMIT 1",[$now])->fetch(PDO::FETCH_ASSOC);
+        $item=sql($db,"SELECT * FROM outbox WHERE status='PENDING' AND attempts<5 AND available_at<=? ORDER BY CASE WHEN method='answerCallbackQuery' THEN 0 ELSE 1 END,id LIMIT 1",[$now])->fetch(PDO::FETCH_ASSOC);
         if (!$item) break;
         $lease=bin2hex(random_bytes(16));
         $claim=sql($db,"UPDATE outbox SET status='SENDING',lease_id=?,lease_until=?,attempts=attempts+1 WHERE id=? AND status='PENDING'",[$lease,gmdate('Y-m-d H:i:s',time()+120),$item['id']]);

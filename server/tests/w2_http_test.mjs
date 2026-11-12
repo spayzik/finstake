@@ -57,7 +57,10 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   assert.equal((await hook(manager)).status,200);assert.equal((await hook(manager)).status,200);
   assert.equal((await hook(cb(32,action,9001,{id:settings.crm_chat_id,type:'supergroup'}))).status,200);
   rows=await state();assert.equal(rows.leads[0].status,'IN_PROGRESS');assert.equal(rows.lead_status_history.length,1);
-  fail=true;const failure=await worker();assert.ok(failure.failed>0);assert.equal((await state()).outbox.filter(o=>o.status==='PENDING').length,2);
+  const acknowledgements=rows.outbox.filter(o=>o.method==='answerCallbackQuery').map(o=>JSON.parse(o.payload).text);
+  assert.ok(acknowledgements.includes('Нет доступа к управлению этой заявкой.'));
+  assert.ok(acknowledgements.some(t=>t?.includes('Карточка устарела')));
+  fail=true;const failure=await worker();assert.ok(failure.failed>0);assert.equal((await state()).outbox.filter(o=>o.status==='PENDING').length,4);
   fail=false;
   assert.equal((await hook(start(40,'/cancel'))).status,200);assert.equal((await state()).telegram_sessions[0].cancelled,1);
   assert.equal((await hook(start(41,'/start'))).status,200);assert.equal((await state()).telegram_sessions[0].cancelled,0);

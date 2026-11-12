@@ -71,15 +71,19 @@ function persistTelegramUpdate(PDO $db,array $update,array $config): void {
         $actor=is_array($message)?($message['from']['id']??null):($callback['from']['id']??null);
         $data=$callback['data']??null; $text=$message['text']??'';
         if (is_array($callback) && is_string($data) && preg_match('/^m:([a-f0-9]{32}):([0-9]{1,8}):(IN_PROGRESS|COMPLETED|CLOSED)$/D',$data,$m)) {
+            $ack='Нет доступа к управлению этой заявкой.';
             if (is_int($actor) && in_array($actor,$config['manager_ids'],true) && ($chat['id']??null)===$config['crm_chat_id'] && ($callback['message']['message_thread_id']??null)===$config['leads_topic_id']) {
+                $ack='Карточка устарела. Используйте кнопки в последней карточке заявки.';
                 $lead=sql($db,'SELECT id,status,revision FROM leads WHERE id=?'.rowLock($db),[$m[1]])->fetch(PDO::FETCH_ASSOC);
                 if ($lead && (int)$lead['revision']===(int)$m[2] && (($lead['status']==='NEW' && in_array($m[3],['IN_PROGRESS','CLOSED'],true)) || ($lead['status']==='IN_PROGRESS' && in_array($m[3],['COMPLETED','CLOSED'],true)))) {
                     (new LeadStatusRepository($db))->change($lead['id'],$lead['status'],$m[3],$actor,utcNow());
                     sql($db,'UPDATE leads SET revision=revision+1 WHERE id=?',[$lead['id']]);
                     notifyManagers($db,$lead['id'],'status:'.$updateId,$config);
                     enqueueTelegram($db,$lead['id'],'ack:'.$callbackId,'answerCallbackQuery',['callback_query_id'=>$callbackId,'text'=>'Статус сохранён']);
+                    $ack=null;
                 }
             }
+            if ($ack!==null) enqueueTelegram($db,null,'ack:'.$callbackId,'answerCallbackQuery',['callback_query_id'=>$callbackId,'text'=>$ack]);
         } elseif (is_array($chat) && ($chat['type']??null)==='private' && is_int($chat['id']??null) && $chat['id']===$actor) {
             $session=null; $reply=null;
             if (is_string($text) && preg_match('/^\/start ([A-Za-z0-9_-]{20,64})$/D',$text,$m)) {
