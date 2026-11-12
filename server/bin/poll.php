@@ -11,7 +11,7 @@ try {
  $cursor=dirname(getenv('FINSTAKE_CONFIG')).'/poll-offset';
  $offset=is_file($cursor)?(int)file_get_contents($cursor):0;
  $updates=[];
- try {$updates=$api->call('getUpdates',['offset'=>$offset,'timeout'=>0,'limit'=>50,'allowed_updates'=>['message','callback_query']]);}
+ try {$updates=$api->call('getUpdates',['offset'=>$offset,'timeout'=>8,'limit'=>50,'allowed_updates'=>['message','callback_query']]);}
  catch(Throwable $e){fwrite(STDERR,"Receive retry pending\n");}
  foreach ($updates as $u) {
    // Isolated synthetic pilot: only the configured Owner/manager test accounts.
