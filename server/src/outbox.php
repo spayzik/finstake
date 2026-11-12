@@ -18,7 +18,7 @@ function deliverOutbox(PDO $db,TelegramTransport $transport,int $limit=25): arra
             sql($db,"UPDATE outbox SET status='SENT',lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?",[$item['id'],$lease]); $sent++;
         } catch (Throwable $e) {
             $attempt=(int)$item['attempts']+1;
-            sql($db,'UPDATE outbox SET status=?,available_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?',[$attempt>=5?'FAILED':'PENDING',gmdate('Y-m-d H:i:s',time()+min(3600,5*(2**$attempt))),$item['id'],$lease]); $failed++;
+            sql($db,'UPDATE outbox SET status=?,available_at=?,lease_id=NULL,lease_until=NULL WHERE id=? AND lease_id=?',[$attempt>=5?'FAILED':'PENDING',gmdate('Y-m-d H:i:s',time()+min(60,2**$attempt)),$item['id'],$lease]); $failed++;
         }
     }
     return ['sent'=>$sent,'failed'=>$failed];

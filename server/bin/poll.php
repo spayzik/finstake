@@ -10,7 +10,9 @@ try {
  $api=new HttpsTelegramTransport($c['telegram_token']);
  $cursor=dirname(getenv('FINSTAKE_CONFIG')).'/poll-offset';
  $offset=is_file($cursor)?(int)file_get_contents($cursor):0;
- $updates=$api->call('getUpdates',['offset'=>$offset,'timeout'=>0,'limit'=>50,'allowed_updates'=>['message','callback_query']]);
+ $updates=[];
+ try {$updates=$api->call('getUpdates',['offset'=>$offset,'timeout'=>0,'limit'=>50,'allowed_updates'=>['message','callback_query']]);}
+ catch(Throwable $e){fwrite(STDERR,"Receive retry pending\n");}
  foreach ($updates as $u) {
    // Isolated synthetic pilot: only the configured Owner/manager test accounts.
    $actor=$u['message']['from']['id']??$u['callback_query']['from']['id']??null;
@@ -18,5 +20,5 @@ try {
    $offset=max($offset,(int)$u['update_id']+1);
    file_put_contents($cursor,(string)$offset,LOCK_EX); chmod($cursor,0600);
  }
- echo json_encode(deliverOutbox($db,$api,25)).PHP_EOL;
+ echo json_encode(deliverOutbox($db,$api,6)).PHP_EOL;
 } catch (Throwable $e) {fwrite(STDERR,"Polling unavailable\n");exit(1);}

@@ -30,6 +30,14 @@ const releaseInput = {
 };
 const liveConfig = resolveLeadConfig(releaseInput);
 
+test('receipt display accepts only a positive safe integer number', async () => {
+  for (const value of [0,-1,1.5,'7',7]) {
+    const result=await submitLead(validDraft,liveConfig,{fetcher:async()=>new Response(JSON.stringify({status:'accepted',requestId:'synthetic-receipt',requestNumber:value}),{status:201})});
+    assert.equal(result.status,'accepted');
+    if(result.status==='accepted') assert.equal(result.requestNumber,value===7?7:undefined);
+  }
+});
+
 test('only the configured bot and opaque start token can be shown after acceptance', async () => {
   for (const url of ['https://t.me/finstake_helperbot?start=' + 'x'.repeat(43), 'javascript:alert(1)', 'https://t.me/other_bot?start=' + 'x'.repeat(43)]) {
     const result = await submitLead(validDraft, liveConfig, { fetcher: async () => new Response(JSON.stringify({status:'accepted', requestId:'synthetic-id', telegramUrl:url}), {status:201}) });
