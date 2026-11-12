@@ -1,0 +1,14 @@
+{
+  "mode": "synthetic",
+  "database": {"driver":"mysql","host":"localhost","port":3306,"database":"REPLACE_TEST_DB","user":"REPLACE_USER","password":"REPLACE_PASSWORD"},
+  "versions":{"policy":"test-policy","consent":"test-consent","release":"test-release","marketing":"test-marketing"},
+  "test_key":"REPLACE_WITH_RANDOM_TEST_ACCESS_KEY",
+  "link_secret":"REPLACE_WITH_RANDOM_LINK_SIGNING_SECRET",
+  "webhook_secret":"REPLACE_WITH_RANDOM_WEBHOOK_SECRET",
+  "telegram_token":"REPLACE_WITH_NEW_PRIVATE_BOT_TOKEN",
+  "webhook_url":"https://YOUR_TEST_HOST/api/telegram/webhook",
+  "origin":"https://YOUR_TEST_HOST",
+  "crm_chat_id":-1000000000000,
+  "leads_topic_id":1,
+  "manager_ids":[1]
+}
