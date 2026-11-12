@@ -124,8 +124,10 @@ export async function submitLead(
 
   // The only bypass is a Vite development build on loopback and an explicitly
   // synthetic fixture. Production release gates remain unchanged.
-  const localTest = import.meta.env?.DEV === true && import.meta.env.VITE_LOCAL_SYNTHETIC === '1'
-    && typeof location !== 'undefined' && location.hostname === '127.0.0.1'
+  const localTest = typeof location !== 'undefined' && (
+    (import.meta.env?.DEV === true && import.meta.env.VITE_LOCAL_SYNTHETIC === '1' && location.hostname === '127.0.0.1')
+    || (import.meta.env?.VITE_HOSTED_SYNTHETIC === '1' && location.protocol === 'https:' && location.pathname === '/w2-test/')
+    )
     && config.mode === 'live' && config.endpoint === '/api/leads'
     && config.privacyPolicyVersion === 'test-policy' && config.leadConsentVersion === 'test-consent'
     && config.releaseId === 'test-release' && draft.name.trim() === 'Тест Тестов'

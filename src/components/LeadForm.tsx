@@ -37,12 +37,14 @@ const communicationOptions = [
   { value: 'whatsapp', label: 'WhatsApp' },
 ] as const;
 
-const localTest = import.meta.env.DEV && import.meta.env.VITE_LOCAL_SYNTHETIC === '1'
-  && typeof location !== 'undefined' && location.hostname === '127.0.0.1';
+const localTest = typeof location !== 'undefined' && (
+  (import.meta.env.DEV && import.meta.env.VITE_LOCAL_SYNTHETIC === '1' && location.hostname === '127.0.0.1')
+  || (import.meta.env.VITE_HOSTED_SYNTHETIC === '1' && location.protocol === 'https:' && location.pathname === '/w2-test/')
+);
 const config = localTest ? {
   mode: 'live' as const, endpoint: '/api/leads', privacyPolicyVersion: 'test-policy',
   privacyPolicyUrl: '/privacy', liveSwitch: 'technical-enabled', releaseId: 'test-release',
-  deploymentOrigin: 'http://127.0.0.1:4187', operatorName: 'Тестовый режим',
+  deploymentOrigin: location.origin, operatorName: 'Тестовый режим',
   leadConsentVersion: 'test-consent', leadConsentUrl: '/test-consent', withdrawalUrl: '/privacy',
 } : resolveLeadConfig({
   endpoint: import.meta.env.VITE_LEAD_ENDPOINT,

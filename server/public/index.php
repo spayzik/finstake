@@ -14,7 +14,11 @@ try {
  if ($path==='/api/telegram/webhook' && !hash_equals($c['webhook_secret'],$_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN']??'')) reply(403,['status'=>'unavailable']);
  if ($path==='/api/leads') {
     if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN']!==($c['origin']??null)) reply(403,['status'=>'unavailable']);
-    if (PHP_SAPI!=='cli-server' && !hash_equals($c['test_key']??'',$_SERVER['HTTP_X_FINSTAKE_TEST_KEY']??'__missing__')) reply(403,['status'=>'unavailable']);
+    if (PHP_SAPI!=='cli-server' && !hash_equals($c['test_key']??'',$_SERVER['HTTP_X_FINSTAKE_TEST_KEY']??'__missing__')) {
+        require_once __DIR__.'/../src/test_session.php'; startTestSession();
+        $authorised=validTestSession($c); session_write_close();
+        if (!$authorised) reply(403,['status'=>'unavailable']);
+    }
  }
  if ((int)($_SERVER['CONTENT_LENGTH']??0)>16384) reply(413,['status'=>'invalid']);
  if (!str_starts_with(strtolower($_SERVER['CONTENT_TYPE']??''),'application/json')) reply(415,['status'=>'invalid']);
