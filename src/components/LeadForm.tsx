@@ -175,6 +175,7 @@ export function LeadForm({ initialService = 'personal', initialValues, onClose, 
             : 'Сервер подтвердил приём заявки. Сохраните номер вашего обращения.'}</p>
           {result.status === 'accepted' && <p className="lead-request-id">Номер обращения: <strong>{result.requestId}</strong></p>}
           {result.status === 'accepted' && config.mode === 'live' && <a className="lead-privacy-link" href={config.withdrawalUrl}>Обращения по персональным данным и отзыв согласия</a>}
+          {result.status === 'accepted' && result.telegramUrl && <a className="lead-button lead-button-primary" href={result.telegramUrl} target="_blank" rel="noopener noreferrer">Продолжить в Telegram</a>}
           <div className="lead-summary"><span>{selectedService}</span><strong>{amount?.toLocaleString('ru-RU')} ₽</strong></div>
           <button type="button" className="lead-button lead-button-primary" onClick={onClose}>Готово <Check size={18} aria-hidden="true" /></button>
         </div>

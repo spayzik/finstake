@@ -14,8 +14,9 @@ function parseScreeningCallback(string $data): ?array {
     if (!preg_match('/^q:([0-2]):([a-z_]{1,20})$/D',$data,$m)) return null;
     $step=(int)$m[1]; return screeningNext($step,$m[2]) === null ? null : [$step,$m[2]];
 }
-function telegramKeyboard(int $step): array {
+function telegramKeyboard(int $step, ?string $leadId = null): array {
     [, $options]=questionForStep($step); $rows=[];
-    foreach ($options as [$title,$value]) $rows[]=[['text'=>$title,'callback_data'=>"q:$step:$value"]];
+    $prefix = $leadId === null ? 'q' : 'q:'.$leadId;
+    foreach ($options as [$title,$value]) $rows[]=[['text'=>$title,'callback_data'=>"$prefix:$step:$value"]];
     return ['inline_keyboard'=>$rows];
 }

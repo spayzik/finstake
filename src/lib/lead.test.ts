@@ -30,6 +30,14 @@ const releaseInput = {
 };
 const liveConfig = resolveLeadConfig(releaseInput);
 
+test('only the configured bot and opaque start token can be shown after acceptance', async () => {
+  for (const url of ['https://t.me/finstake_helperbot?start=' + 'x'.repeat(43), 'javascript:alert(1)', 'https://t.me/other_bot?start=' + 'x'.repeat(43)]) {
+    const result = await submitLead(validDraft, liveConfig, { fetcher: async () => new Response(JSON.stringify({status:'accepted', requestId:'synthetic-id', telegramUrl:url}), {status:201}) });
+    assert.equal(result.status, 'accepted');
+    if (result.status === 'accepted') assert.equal(result.telegramUrl, url.startsWith('https://t.me/finstake_helperbot?') ? url : undefined);
+  }
+});
+
 test('amount validation rejects zero, overflow, fractions, exponent notation and embedded text', () => {
   for (const value of ['', '0', '-1', '1000000001', '1.5', '1e6', '500 руб.', 'Infinity']) {
     assert.equal(parseAmount(value), null, value);

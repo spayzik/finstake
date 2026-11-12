@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteRule ^(leads|telegram/webhook)$ index.php [L]
+Options -Indexes
