@@ -10,6 +10,14 @@ function botMenuKeyboard(): array {
 }
 /** Called inside the update transaction. Only synthetic pilot accounts reach this handler via poll.php. */
 function botMenuUpdate(PDO $db,int $actor,mixed $text,mixed $data,?string $callbackId,int $updateId,array $c): bool {
+ if($text==='/cancel') {
+  $draft=sql($db,"SELECT actor_id FROM bot_drafts WHERE actor_id=? AND stage<>'done'".rowLock($db),[$actor])->fetchColumn();
+  if($draft!==false) {
+   sql($db,"UPDATE bot_drafts SET stage='done',updated_at=? WHERE actor_id=?",[utcNow(),$actor]);
+   enqueueTelegram($db,null,'menu:'.$updateId,'sendMessage',['chat_id'=>$actor,'text'=>'Начало обращения отменено. Уже созданные заявки сохранены.','reply_markup'=>botMenuKeyboard()]);
+   return true;
+  }
+ }
  $command=is_string($text)&&in_array($text,['/start','/help','/menu'],true);
  if (!$command && (!is_string($data)||(!str_starts_with($data,'f:')&&!str_starts_with($data,'b:')))) return false;
  if ($data==='f:resume') return false;

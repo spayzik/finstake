@@ -83,6 +83,11 @@ test('W2 HTTP → durable lead → screening → mock HTTP delivery → authoris
   const botNotification=rows.outbox.find(o=>o.lead_id!==receipt.requestId && JSON.parse(o.payload).chat_id===settings.crm_chat_id);
   assert.ok(JSON.parse(botNotification.payload).text.includes('Заявка №2'));
   assert.ok(JSON.parse(botNotification.payload).text.includes('Бот / другое'));
+  assert.equal((await hook(cb(70,'b:new',46,{id:46,type:'private'}))).status,200);
+  assert.equal((await hook(start(71,'/cancel',46))).status,200);
+  const cancellation=(await state()).outbox.find(o=>o.dedupe_key==='menu:71');
+  assert.ok(JSON.parse(cancellation.payload).text.includes('отменено'));
+  assert.equal((await state()).leads.length,2);
   for(const term of [body.contact.name,body.contact.phone,settings.webhook_secret,token])assert.ok(!logs.includes(term),'sensitive fixture leaked to process log');
   for(const c of calls.filter(c=>c.payload.chat_id===settings.crm_chat_id))for(const term of [body.contact.name,body.contact.phone]) assert.ok(!JSON.stringify(c).includes(term));
  } finally {proc.kill();if(proc.exitCode===null)await new Promise(r=>proc.once('exit',r));await new Promise(r=>mock.close(r));await rm(dir,{recursive:true,force:true});}
